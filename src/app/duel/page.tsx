@@ -1,0 +1,462 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+
+const duelSentences = [
+	"Mastering JavaScript requires patience, practice, and a willingness to learn from mistakes.",
+	"Artificial intelligence is transforming the way we interact with technology and the world around us.",
+	"Developers often collaborate using version control systems like Git to manage codebases efficiently.",
+	"Building scalable web applications involves careful planning, testing, and optimization at every stage.",
+	"Understanding asynchronous programming is essential for modern frontend and backend development.",
+];
+
+export default function Duel() {
+	const [target, setTarget] = useState("");
+	const [input, setInput] = useState("");
+	const [aiIndex, setAiIndex] = useState(0);
+	// Set AI speed to 20 WPM (words per minute)
+	// 1 word = 5 chars, so 20wpm = 100 chars/min = 600ms per char
+	const [aiSpeed, setAiSpeed] = useState(600); // ms per char for 20wpm
+	const [aiFinished, setAiFinished] = useState(false);
+	const [userFinished, setUserFinished] = useState(false);
+	const [duelPoints, setDuelPoints] = useState(0);
+	const [result, setResult] = useState("");
+	const [startTime, setStartTime] = useState<number | null>(null);
+	const [wpm, setWpm] = useState<number | null>(null);
+	const [accuracy, setAccuracy] = useState<number>(100);
+	// Track all user WPMs for average
+	const [wpmHistory, setWpmHistory] = useState<number[]>([]);
+	const router = useRouter();
+	// Generate a random player name once per duel
+	const [opponentName, setOpponentName] = useState("");
+
+	// Banner state for win/lose
+	const [showBanner, setShowBanner] = useState(""); // "win" | "lose" | ""
+
+	// User account state
+	const [playerName, setPlayerName] = useState("");
+	const [password, setPassword] = useState("");
+	const [showAccountModal, setShowAccountModal] = useState(false);
+
+	// Track equipped character and skip ability
+	const [equippedCharacter, setEquippedCharacter] = useState<string | null>(null);
+	const [skipUsed, setSkipUsed] = useState(0); // now a counter
+	const maxSkips = equippedCharacter === 'pro' ? 3 : equippedCharacter === 'default-typer' ? 1 : 0;
+
+	// Sabotage ability state
+	const [sabotageCooldown, setSabotageCooldown] = useState(0);
+	const [sabotageAvailable, setSabotageAvailable] = useState(false);
+	const [showSabotageMsg, setShowSabotageMsg] = useState("");
+
+	// Kill ability state for Master
+	const [killCooldown, setKillCooldown] = useState(0);
+	const [killAvailable, setKillAvailable] = useState(false);
+	const [showKillMsg, setShowKillMsg] = useState("");
+
+	useEffect(() => {
+		// Pick a random long sentence
+		const random = duelSentences[Math.floor(Math.random() * duelSentences.length)];
+		setTarget(random);
+		setInput("");
+		setAiIndex(0);
+		setAiFinished(false);
+		setUserFinished(false);
+		setResult("");
+		setStartTime(Date.now());
+		setWpm(null);
+		setAccuracy(100);
+		// Set AI speed to match average WPM
+		let avgWpm = 20;
+		if (wpmHistory.length > 0) {
+			avgWpm = Math.round(wpmHistory.reduce((a, b) => a + b, 0) / wpmHistory.length);
+			if (avgWpm < 1) avgWpm = 1;
+		}
+		setAiSpeed(60000 / (avgWpm * 5));
+		// Generate random opponent name
+		setOpponentName(`player${Math.floor(100 + Math.random() * 900)}`);
+	}, [duelPoints]);
+
+	useEffect(() => {
+		if (aiFinished || userFinished) return;
+		if (aiIndex < target.length) {
+			const timeout = setTimeout(() => {
+				setAiIndex((idx) => idx + 1);
+			}, aiSpeed);
+			return () => clearTimeout(timeout);
+		} else {
+			setAiFinished(true);
+			if (!userFinished) setResult(`❌ ${opponentName} wins! Try again.`);
+		}
+	}, [aiIndex, aiFinished, userFinished, aiSpeed, target.length]);
+
+	useEffect(() => {
+		let timeout: ReturnType<typeof setTimeout> | undefined;
+		// Only show banner if result is not empty, not just on mount
+		if (result && !result.startsWith("❌") && result.toLowerCase().includes("you win")) {
+			setShowBanner("win");
+			timeout = setTimeout(() => setShowBanner("") , 3000);
+		} else if (result && result.startsWith("❌") && !result.includes('Try again.') && result !== `❌ ${opponentName} wins! Try again.`) {
+			// Only show lose banner if it's a real loss, not on mount or reset
+			setShowBanner("lose");
+			timeout = setTimeout(() => setShowBanner("") , 3000);
+		} else {
+			setShowBanner("");
+		}
+		return () => timeout && clearTimeout(timeout);
+	}, [result, opponentName]);
+
+	// On mount, check for saved player info
+	useEffect(() => {
+		const savedName = localStorage.getItem("playerName");
+		const savedPass = localStorage.getItem("playerPassword");
+		if (!savedName || !savedPass) {
+			setShowAccountModal(true);
+		} else {
+			setPlayerName(savedName);
+			setPassword(savedPass);
+		}
+	}, []);
+
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			setEquippedCharacter(localStorage.getItem('equippedCharacter'));
+		}
+	}, []);
+
+	// Reset skipUsed on new duel
+	useEffect(() => {
+		setSkipUsed(0);
+	}, [target]);
+
+	// On mount, load sabotage cooldown
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			const cooldown = parseInt(localStorage.getItem('sabotageCooldown') || '0', 10);
+			setSabotageCooldown(cooldown);
+			setSabotageAvailable(equippedCharacter === 'advanced-typer' && cooldown === 0);
+		}
+	}, [equippedCharacter]);
+
+	// Decrement cooldown after each duel (win or lose)
+	useEffect(() => {
+		if ((userFinished || aiFinished) && equippedCharacter === 'advanced-typer') {
+			if (sabotageCooldown > 0) {
+				const newCooldown = sabotageCooldown - 1;
+				localStorage.setItem('sabotageCooldown', newCooldown.toString());
+				setSabotageCooldown(newCooldown);
+				setSabotageAvailable(newCooldown === 0);
+			} else if (sabotageCooldown === 0) {
+				setSabotageAvailable(true);
+			}
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [userFinished, aiFinished]);
+
+	// On mount, load kill cooldown
+	useEffect(() => {
+		if (typeof window !== 'undefined') {
+			const cooldown = parseInt(localStorage.getItem('killCooldown') || '0', 10);
+			setKillCooldown(cooldown);
+			setKillAvailable(equippedCharacter === 'master' && cooldown === 0);
+		}
+	}, [equippedCharacter]);
+
+	// Decrement kill cooldown after each duel (win or lose)
+	useEffect(() => {
+		if ((userFinished || aiFinished) && equippedCharacter === 'master') {
+			if (killCooldown > 0) {
+				const newCooldown = killCooldown - 1;
+				localStorage.setItem('killCooldown', newCooldown.toString());
+				setKillCooldown(newCooldown);
+				setKillAvailable(newCooldown === 0);
+			} else if (killCooldown === 0) {
+				setKillAvailable(true);
+			}
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [userFinished, aiFinished]);
+
+	const calculateAccuracy = (typed: string, correct: string) => {
+		let correctCount = 0;
+		for (let i = 0; i < typed.length; i++) {
+			if (typed[i] === correct[i]) correctCount++;
+		}
+		return typed.length > 0 ? Math.round((correctCount / typed.length) * 100) : 100;
+	};
+
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		if (userFinished || aiFinished) return;
+		const newVal = e.target.value;
+		// Only allow typing forward by one character
+		if (newVal.length < input.length) return;
+		if (newVal.length > input.length + 1) return;
+		// Only allow correct character at current position
+		const nextChar = target[input.length];
+		if (newVal[newVal.length - 1] !== nextChar) return;
+		setInput(newVal);
+		setAccuracy(calculateAccuracy(newVal, target));
+		if (newVal.length === target.length) {
+			setUserFinished(true);
+			const endTime = Date.now();
+			const durationInMinutes = (endTime - (startTime ?? endTime)) / 60000;
+			const wordCount = target.trim().split(/\s+/).length;
+			const calculatedWpm = Math.round(wordCount / durationInMinutes);
+			setWpm(calculatedWpm);
+			setWpmHistory((prev) => [...prev, calculatedWpm]);
+			if (!aiFinished) {
+				setDuelPoints((p) => p + 5);
+				setResult("🏆 You win! +5 Duel Points");
+			} else {
+				setResult(`❌ ${opponentName} wins! Try again.`);
+			}
+		}
+	};
+
+	const handleAccountSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		if (playerName && password) {
+			localStorage.setItem("playerName", playerName);
+			localStorage.setItem("playerPassword", password);
+			setShowAccountModal(false);
+		}
+	};
+
+	const handleEditAccount = () => {
+		setShowAccountModal(true);
+	};
+
+	const renderHighlightedTarget = () => {
+		return (
+			<p className="font-mono text-lg flex flex-wrap">
+				{target.split("").map((char, idx) => {
+					let className = "px-0.5";
+					const currentChar = input[idx];
+					if (char === " ") {
+						char = "␣";
+						className += " bg-gray-300 dark:bg-gray-700 rounded";
+					}
+					if (idx < input.length) {
+						className +=
+							currentChar === target[idx]
+								? " text-green-600 dark:text-green-400"
+								: " text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900";
+					} else if (idx === input.length) {
+						className += " bg-yellow-200 dark:bg-yellow-500 text-black rounded";
+					} else {
+						className += " text-gray-500 dark:text-gray-400";
+					}
+					// Show AI's current position
+					if (idx === aiIndex && !aiFinished) {
+						className += " border-b-4 border-blue-500";
+					}
+					// Show opponent name above their cursor
+					if (idx === aiIndex && !aiFinished) {
+						return (
+							<span key={idx} className="relative">
+								<span className={className}>{char}</span>
+								<span className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs text-blue-600 dark:text-blue-400 font-bold whitespace-nowrap">{opponentName}</span>
+							</span>
+						);
+					}
+					return (
+						<span key={idx} className={className}>
+							{char}
+						</span>
+					);
+				})}
+			</p>
+		);
+	};
+
+	// Sabotage button handler
+	const handleSabotage = () => {
+		if (!sabotageAvailable) return;
+		// Set cooldown to 3
+		localStorage.setItem('sabotageCooldown', '3');
+		setSabotageCooldown(3);
+		setSabotageAvailable(false);
+		setAiIndex(0); // Restart AI to front
+		setShowSabotageMsg('Sabotage used! AI restarted.');
+		setTimeout(() => setShowSabotageMsg(''), 2000);
+	};
+
+	// Kill button handler
+	const handleKill = () => {
+		if (!killAvailable) return;
+		// Set cooldown to 2
+		localStorage.setItem('killCooldown', '2');
+		setKillCooldown(2);
+		setKillAvailable(false);
+		// Instantly win for player
+		setInput(target);
+		setUserFinished(true);
+		setAiIndex(0);
+		setShowKillMsg('Kill used! You win instantly.');
+		setResult('🏆 You win! +5 Duel Points');
+		setDuelPoints((p) => p + 5);
+		setTimeout(() => setShowKillMsg(''), 2000);
+	};
+
+	// Remove cooldown decrement from handleNextDuel (now handled in useEffect)
+	const handleNextDuel = () => {
+		setDuelPoints((p) => p);
+		setTarget(duelSentences[Math.floor(Math.random() * duelSentences.length)]);
+		setInput("");
+		setAiIndex(0);
+		setAiFinished(false);
+		setUserFinished(false);
+		setResult("");
+		setStartTime(Date.now());
+		setWpm(null);
+		setAccuracy(100);
+	};
+
+	return (
+		<main className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-gray-900 p-4">
+			{/* Kill Button: only for Master in duel mode */}
+			{equippedCharacter === 'master' && (
+				<div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
+					<button
+						className={`px-6 py-3 rounded-xl font-bold text-white text-lg shadow-lg ${killAvailable ? 'bg-black hover:bg-gray-800' : 'bg-gray-400 cursor-not-allowed'}`}
+						disabled={!killAvailable}
+						onClick={handleKill}
+					>
+						Kill {killAvailable ? '' : `(Cooldown: ${killCooldown} duels)`}
+					</button>
+					{showKillMsg && (
+						<div className="mt-2 text-white bg-black/80 px-3 py-1 rounded">{showKillMsg}</div>
+					)}
+				</div>
+			)}
+			{/* Sabotage Button: only for Advanced Typer in duel mode */}
+			{equippedCharacter === 'advanced-typer' && (
+				<div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
+					<button
+						className={`px-6 py-3 rounded-xl font-bold text-white text-lg shadow-lg ${sabotageAvailable ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-400 cursor-not-allowed'}`}
+						disabled={!sabotageAvailable}
+						onClick={handleSabotage}
+					>
+						Sabotage {sabotageAvailable ? '' : `(Cooldown: ${sabotageCooldown} duels)`}
+					</button>
+					{showSabotageMsg && (
+						<div className="mt-2 text-white bg-black/80 px-3 py-1 rounded">{showSabotageMsg}</div>
+					)}
+				</div>
+			)}
+			{/* Account Modal */}
+			{showAccountModal && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+					<form onSubmit={handleAccountSubmit} className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px]">
+						<h2 className="text-2xl font-bold mb-2 text-center">{localStorage.getItem("playerName") ? "Edit Account" : "Create Account"}</h2>
+						<input
+							type="text"
+							placeholder="Player Name"
+							value={playerName}
+							onChange={e => setPlayerName(e.target.value)}
+							className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
+							required
+						/>
+						<input
+							type="password"
+							placeholder="Password"
+							value={password}
+							onChange={e => setPassword(e.target.value)}
+							className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
+							required
+						/>
+						<button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition">Save</button>
+					</form>
+				</div>
+			)}
+			{/* Win/Lose Banner Overlay */}
+			{showBanner === "lose" && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fadeIn animate-fadeOut">
+					<div className="text-6xl font-extrabold text-red-500 drop-shadow-lg animate-fadeInUp animate-fadeOut">
+						YOU LOSE
+					</div>
+				</div>
+			)}
+			{showBanner === "win" && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fadeIn animate-fadeOut">
+					<div className="text-6xl font-extrabold text-green-500 drop-shadow-lg animate-fadeInUp animate-fadeOut">
+						YOU WIN
+					</div>
+				</div>
+			)}
+			{/* Top-right HUD */}
+			<div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+				<button
+					className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded-md font-semibold border border-gray-400 dark:border-gray-600 hover:bg-blue-500 hover:text-white transition"
+					onClick={() => router.push("/")}
+				>
+					Solo Mode
+				</button>
+				<button
+					className="bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white px-3 py-1 rounded-md font-semibold border border-yellow-600 hover:bg-yellow-500 mt-2 transition"
+					onClick={handleEditAccount}
+				>
+					Edit Account
+				</button>
+				<div className="bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700 p-3 rounded-lg shadow-md text-right min-w-[140px]">
+					<p>⚔️ Duel Points: <span className="font-bold">{duelPoints}</span></p>
+				</div>
+			</div>
+			<h1 className="text-3xl font-bold mb-6 text-center">⚔️ Duel Mode <span className="text-base font-normal text-gray-500 dark:text-gray-400">({playerName && `Player: ${playerName}`})</span></h1>
+			<div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg max-w-2xl w-full">
+				<p className="mb-2 text-lg text-gray-700 dark:text-gray-300">Type this sentence faster than <span className="font-bold text-blue-600 dark:text-blue-400">{opponentName}</span>:</p>
+				<div className="mb-4 bg-blue-100 dark:bg-blue-900 p-3 rounded-md text-wrap break-words">
+					{renderHighlightedTarget()}
+				</div>
+				<input
+					type="text"
+					value={input}
+					onChange={handleInputChange}
+					onKeyDown={e => {
+						if (
+							(equippedCharacter === 'default-typer' || equippedCharacter === 'pro') &&
+							e.key === 'Enter' &&
+							skipUsed < maxSkips &&
+							!userFinished &&
+							!aiFinished
+						) {
+							const nextSpace = target.indexOf(' ', input.length);
+							if (nextSpace !== -1) {
+								setInput(target.slice(0, nextSpace + 1));
+							} else {
+								setInput(target);
+							}
+							setSkipUsed(skipUsed + 1);
+							e.preventDefault();
+						}
+					}}
+					className="w-full p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
+					placeholder="Start typing..."
+					autoFocus
+					spellCheck={false}
+					autoComplete="off"
+					autoCorrect="off"
+					disabled={userFinished || aiFinished}
+				/>
+				{result && (
+					<p className={`mt-3 text-lg font-semibold ${result.startsWith("❌") ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>{result}</p>
+				)}
+				{wpm !== null && (
+					<div className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+						🕐 WPM: <span className="font-bold">{wpm}</span><br />
+						🎯 Accuracy: <span className="font-bold">{accuracy}</span>%
+					</div>
+				)}
+				<div className="mt-6 text-center">
+					<button
+						className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition"
+						onClick={handleNextDuel}
+						disabled={!userFinished && !aiFinished}
+					>
+						Next Duel
+					</button>
+				</div>
+			</div>
+		</main>
+	);
+}
