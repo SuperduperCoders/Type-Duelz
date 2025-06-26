@@ -59,9 +59,6 @@ export default function Home() {
   const [accuracy, setAccuracy] = useState<number>(100);
   const [isFinished, setIsFinished] = useState(false);
 
-  // New loading state
-  const [loading, setLoading] = useState(true);
-
   // User account state
   const [playerName, setPlayerName] = useState("");
   const [password, setPassword] = useState("");
@@ -103,9 +100,9 @@ export default function Home() {
 
   useEffect(() => {
     // When target sentence is set, we consider loading done
-    if (target) {
-      setLoading(false);
-    }
+    // if (target) {
+    //   setLoading(false);
+    // }
   }, [target]);
 
   useEffect(() => {
@@ -169,7 +166,7 @@ export default function Home() {
 
   // Modified generateSentence for Pro Typer in duel mode
   const generateSentence = () => {
-    setLoading(true); // show loading while choosing sentence
+    // setLoading(true); // show loading while choosing sentence
 
     let chosenDifficulty = difficulty;
     // Pro Typer ability: 50% chance of easier sentence in duel mode
@@ -278,11 +275,11 @@ export default function Home() {
     setShowAccountModal(true);
   };
 
-  const topWpm = wpmHistory.length > 0 ? Math.max(...wpmHistory) : 0;
-  const averageWpm =
-    wpmHistory.length > 0
-      ? Math.round(wpmHistory.reduce((a, b) => a + b, 0) / wpmHistory.length)
-      : 0;
+  // const topWpm = wpmHistory.length > 0 ? Math.max(...wpmHistory) : 0;
+  // const averageWpm =
+  //   wpmHistory.length > 0
+  //     ? Math.round(wpmHistory.reduce((a, b) => a + b, 0) / wpmHistory.length)
+  //     : 0;
 
   const currentGoal = wpmGoals[difficulty];
 
