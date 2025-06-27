@@ -23,8 +23,6 @@ export default function Duel() {
 	const [duelPoints, setDuelPoints] = useState(0);
 	const [result, setResult] = useState("");
 	const [startTime, setStartTime] = useState<number | null>(null);
-	const [wpm, setWpm] = useState<number | null>(null);
-	const [accuracy, setAccuracy] = useState<number>(100);
 	// Track all user WPMs for average
 	const [wpmHistory, setWpmHistory] = useState<number[]>([]);
 	const router = useRouter();
@@ -78,8 +76,6 @@ export default function Duel() {
 		setUserFinished(false);
 		setResult("");
 		setStartTime(Date.now());
-		setWpm(null);
-		setAccuracy(100);
 		// Set AI speed to match average WPM
 		let avgWpm = 20;
 		if (wpmHistory.length > 0) {
@@ -242,14 +238,6 @@ export default function Duel() {
 		localStorage.setItem("duelPoints", duelPoints.toString());
 	}, [duelPoints, hasMounted]);
 
-	const calculateAccuracy = (typed: string, correct: string) => {
-		let correctCount = 0;
-		for (let i = 0; i < typed.length; i++) {
-			if (typed[i] === correct[i]) correctCount++;
-		}
-		return typed.length > 0 ? Math.round((correctCount / typed.length) * 100) : 100;
-	};
-
 	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		if (userFinished || aiFinished) return;
 		const newVal = e.target.value;
@@ -267,7 +255,6 @@ export default function Duel() {
 			return;
 		}
 		setInput(newVal);
-		setAccuracy(calculateAccuracy(newVal, target));
 		// Play typing sound (duel mode)
 		if (typingAudioRef.current) {
 			typingAudioRef.current.pause();
@@ -282,7 +269,6 @@ export default function Duel() {
 			const durationInMinutes = (endTime - (startTime ?? endTime)) / 60000;
 			const wordCount = target.trim().split(/\s+/).length;
 			const calculatedWpm = Math.round(wordCount / durationInMinutes);
-			setWpm(calculatedWpm);
 			setWpmHistory((prev) => [...prev, calculatedWpm]);
 			if (!aiFinished) {
 				setDuelPoints((p) => p + 5);
@@ -376,19 +362,6 @@ export default function Duel() {
 		setResult('🏆 You win! +5 Duel Points');
 		setDuelPoints((p) => p + 5);
 		setTimeout(() => setShowKillMsg(''), 2000);
-	};
-
-	// Remove cooldown decrement from handleNextDuel (now handled in useEffect)
-	const handleNextDuel = () => {
-		setTarget(duelSentences[Math.floor(Math.random() * duelSentences.length)]);
-		setInput("");
-		setAiIndex(0);
-		setAiFinished(false);
-		setUserFinished(false);
-		setResult("");
-		setStartTime(Date.now());
-		setWpm(null);
-		setAccuracy(100);
 	};
 
 	return (
