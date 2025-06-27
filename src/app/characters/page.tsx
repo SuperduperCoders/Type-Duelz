@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 const characters = [
@@ -46,6 +46,7 @@ export default function CharactersPage() {
 	const [sabotageCooldown, setSabotageCooldown] = useState(0);
 	const [killCooldown, setKillCooldown] = useState(0);
 	const [mounted, setMounted] = useState(false);
+	const clickAudioRef = useRef<HTMLAudioElement | null>(null);
 
 	// On mount, initialize all state from localStorage
 	useEffect(() => {
@@ -134,8 +135,16 @@ export default function CharactersPage() {
 		setEquipped(char.id);
 	};
 
+	const playClick = () => {
+		if (clickAudioRef.current) {
+			clickAudioRef.current.currentTime = 0;
+			clickAudioRef.current.play();
+		}
+	};
+
 	return (
 		<main className="min-h-screen bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-gray-900 p-6 flex flex-col items-center">
+			<audio ref={clickAudioRef} src="/click.mp3" preload="auto" />
 			<h1 className="text-3xl font-bold mb-6">🦸 Characters</h1>
 			<div className="mb-4 flex gap-4">
 				<span className="bg-blue-200 text-blue-800 px-3 py-1 rounded">Duel Points: {duelPoints}</span>
@@ -165,7 +174,7 @@ export default function CharactersPage() {
 								) : (
 									<button
 										className="bg-purple-500 text-white px-4 py-2 rounded font-semibold hover:bg-purple-600 transition mb-2"
-										onClick={() => handleEquip(char)}
+										onClick={() => { playClick(); handleEquip(char); }}
 									>
 										Equip
 									</button>
@@ -176,13 +185,13 @@ export default function CharactersPage() {
 							<div className="flex flex-col gap-2 w-full">
 								<button
 									className="bg-blue-500 text-white px-4 py-2 rounded font-semibold hover:bg-blue-600 transition"
-									onClick={() => handleBuyWithDuel(char)}
+									onClick={() => { playClick(); handleBuyWithDuel(char); }}
 								>
 									Buy with Duel Points
 								</button>
 								<button
 									className="bg-green-500 text-white px-4 py-2 rounded font-semibold hover:bg-green-600 transition"
-									onClick={() => handleBuyWithSkill(char)}
+									onClick={() => { playClick(); handleBuyWithSkill(char); }}
 								>
 									Buy with Skill Points
 								</button>
@@ -191,7 +200,7 @@ export default function CharactersPage() {
 					</div>
 				))}
 			</div>
-			<Link href="/" className="mt-8 text-blue-600 hover:underline">← Back to Home</Link>
+			<Link href="/" className="mt-8 text-blue-600 hover:underline" onClick={playClick}>← Back to Home</Link>
 		</main>
 	);
 }

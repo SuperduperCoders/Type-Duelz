@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useErrorAudio } from "../../hooks/useErrorAudio";
 
 const duelSentences = [
 	"Mastering JavaScript requires patience, practice, and a willingness to learn from mistakes.",
@@ -12,6 +13,7 @@ const duelSentences = [
 ];
 
 export default function Duel() {
+	const [hasMounted, setHasMounted] = useState(false); // NEW: track mount
 	const [target, setTarget] = useState("");
 	const [input, setInput] = useState("");
 	const [aiIndex, setAiIndex] = useState(0);
@@ -54,7 +56,17 @@ export default function Duel() {
 	const [killAvailable, setKillAvailable] = useState(false);
 	const [showKillMsg, setShowKillMsg] = useState("");
 
+	// Audio ref for typing sound
+	const typingAudioRef = useRef<HTMLAudioElement | null>(null);
+	// Use error audio hook
+	const { errorAudioRef, playError } = useErrorAudio();
+
 	useEffect(() => {
+		setHasMounted(true);
+	}, []);
+
+	useEffect(() => {
+		if (!hasMounted) return;
 		// Pick a random long sentence
 		const random = duelSentences[Math.floor(Math.random() * duelSentences.length)];
 		setTarget(random);
@@ -75,7 +87,7 @@ export default function Duel() {
 		setAiSpeed(60000 / (avgWpm * 5));
 		// Generate random opponent name
 		setOpponentName(`player${Math.floor(100 + Math.random() * 900)}`);
-	}, [duelPoints]);
+	}, [duelPoints, hasMounted]);
 
 	useEffect(() => {
 		if (aiFinished || userFinished) return;
@@ -108,6 +120,7 @@ export default function Duel() {
 
 	// On mount, check for saved player info
 	useEffect(() => {
+		if (!hasMounted) return;
 		const savedName = localStorage.getItem("playerName");
 		const savedPass = localStorage.getItem("playerPassword");
 		if (!savedName || !savedPass) {
@@ -116,13 +129,12 @@ export default function Duel() {
 			setPlayerName(savedName);
 			setPassword(savedPass);
 		}
-	}, []);
+	}, [hasMounted]);
 
 	useEffect(() => {
-		if (typeof window !== 'undefined') {
-			setEquippedCharacter(localStorage.getItem('equippedCharacter'));
-		}
-	}, []);
+		if (!hasMounted) return;
+		setEquippedCharacter(localStorage.getItem('equippedCharacter'));
+	}, [hasMounted]);
 
 	// Reset skipUsed on new duel
 	useEffect(() => {
@@ -131,12 +143,11 @@ export default function Duel() {
 
 	// On mount, load sabotage cooldown
 	useEffect(() => {
-		if (typeof window !== 'undefined') {
-			const cooldown = parseInt(localStorage.getItem('sabotageCooldown') || '0', 10);
-			setSabotageCooldown(cooldown);
-			setSabotageAvailable(equippedCharacter === 'advanced-typer' && cooldown === 0);
-		}
-	}, [equippedCharacter]);
+		if (!hasMounted) return;
+		const cooldown = parseInt(localStorage.getItem('sabotageCooldown') || '0', 10);
+		setSabotageCooldown(cooldown);
+		setSabotageAvailable(equippedCharacter === 'advanced-typer' && cooldown === 0);
+	}, [equippedCharacter, hasMounted]);
 
 	// Decrement cooldown after each duel (win or lose)
 	useEffect(() => {
@@ -155,12 +166,11 @@ export default function Duel() {
 
 	// On mount, load kill cooldown
 	useEffect(() => {
-		if (typeof window !== 'undefined') {
-			const cooldown = parseInt(localStorage.getItem('killCooldown') || '0', 10);
-			setKillCooldown(cooldown);
-			setKillAvailable(equippedCharacter === 'master' && cooldown === 0);
-		}
-	}, [equippedCharacter]);
+		if (!hasMounted) return;
+		const cooldown = parseInt(localStorage.getItem('killCooldown') || '0', 10);
+		setKillCooldown(cooldown);
+		setKillAvailable(equippedCharacter === 'master' && cooldown === 0);
+	}, [equippedCharacter, hasMounted]);
 
 	// Decrement kill cooldown after each duel (win or lose)
 	useEffect(() => {
@@ -176,6 +186,33 @@ export default function Duel() {
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [userFinished, aiFinished]);
+
+	// Unlock typing audio on first user interaction (for autoplay policy, improved reliability)
+	useEffect(() => {
+		let unlocked = false;
+		const unlockAudio = () => {
+			if (!unlocked && typingAudioRef.current) {
+				typingAudioRef.current.load();
+				typingAudioRef.current.play().then(() => {
+					typingAudioRef.current?.pause();
+					typingAudioRef.current!.currentTime = 0;
+					unlocked = true;
+					console.log('Typing audio unlocked (duel)');
+				}).catch((e) => {
+					unlocked = true;
+					console.log('Typing audio unlock failed (duel):', e);
+				});
+			}
+			window.removeEventListener('keydown', unlockAudio);
+			window.removeEventListener('pointerdown', unlockAudio);
+		};
+		window.addEventListener('keydown', unlockAudio);
+		window.addEventListener('pointerdown', unlockAudio);
+		return () => {
+			window.removeEventListener('keydown', unlockAudio);
+			window.removeEventListener('pointerdown', unlockAudio);
+		};
+	}, []);
 
 	const calculateAccuracy = (typed: string, correct: string) => {
 		let correctCount = 0;
@@ -193,9 +230,24 @@ export default function Duel() {
 		if (newVal.length > input.length + 1) return;
 		// Only allow correct character at current position
 		const nextChar = target[input.length];
-		if (newVal[newVal.length - 1] !== nextChar) return;
+		const typedChar = newVal[newVal.length - 1];
+		if (typedChar !== nextChar) {
+			// If user is trying to overwrite a previous wrong letter, allow highlight but block input
+			if (newVal.length === input.length + 1) {
+				playError();
+			}
+			return;
+		}
 		setInput(newVal);
 		setAccuracy(calculateAccuracy(newVal, target));
+		// Play typing sound (duel mode)
+		if (typingAudioRef.current) {
+			typingAudioRef.current.pause();
+			typingAudioRef.current.currentTime = 0;
+			typingAudioRef.current.play().catch((e) => {
+				console.log('Typing audio play failed (duel):', e);
+			});
+		}
 		if (newVal.length === target.length) {
 			setUserFinished(true);
 			const endTime = Date.now();
@@ -206,9 +258,9 @@ export default function Duel() {
 			setWpmHistory((prev) => [...prev, calculatedWpm]);
 			if (!aiFinished) {
 				setDuelPoints((p) => p + 5);
-				setResult("🏆 You win! +5 Duel Points");
+				setResult("\ud83c\udfc6 You win! +5 Duel Points");
 			} else {
-				setResult(`❌ ${opponentName} wins! Try again.`);
+				setResult(`\u274c ${opponentName} wins! Try again.`);
 			}
 		}
 	};
@@ -313,150 +365,158 @@ export default function Duel() {
 	};
 
 	return (
-		<main className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-gray-900 p-4">
-			{/* Kill Button: only for Master in duel mode */}
-			{equippedCharacter === 'master' && (
-				<div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
+		!hasMounted ? (
+			<main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-gray-900 p-4">
+				<div className="text-xl text-gray-500 dark:text-gray-400 animate-pulse">Loading Duel Mode...</div>
+			</main>
+		) : (
+			<main className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-gray-900 p-4">
+				<audio ref={typingAudioRef} src="/typing.mp3" preload="auto" />
+				<audio ref={errorAudioRef} src="/error.mp3" preload="auto" />
+				{/* Kill Button: only for Master in duel mode */}
+				{equippedCharacter === 'master' && (
+					<div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
+						<button
+							className={`px-6 py-3 rounded-xl font-bold text-white text-lg shadow-lg ${killAvailable ? 'bg-black hover:bg-gray-800' : 'bg-gray-400 cursor-not-allowed'}`}
+							disabled={!killAvailable}
+							onClick={handleKill}
+						>
+							Kill {killAvailable ? '' : `(Cooldown: ${killCooldown} duels)`}
+						</button>
+						{showKillMsg && (
+							<div className="mt-2 text-white bg-black/80 px-3 py-1 rounded">{showKillMsg}</div>
+						)}
+					</div>
+				)}
+				{/* Sabotage Button: only for Advanced Typer in duel mode */}
+				{equippedCharacter === 'advanced-typer' && (
+					<div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
+						<button
+							className={`px-6 py-3 rounded-xl font-bold text-white text-lg shadow-lg ${sabotageAvailable ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-400 cursor-not-allowed'}`}
+							disabled={!sabotageAvailable}
+							onClick={handleSabotage}
+						>
+							Sabotage {sabotageAvailable ? '' : `(Cooldown: ${sabotageCooldown} duels)`}
+						</button>
+						{showSabotageMsg && (
+							<div className="mt-2 text-white bg-black/80 px-3 py-1 rounded">{showSabotageMsg}</div>
+						)}
+					</div>
+				)}
+				{/* Account Modal */}
+				{showAccountModal && (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+						<form onSubmit={handleAccountSubmit} className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px]">
+							<h2 className="text-2xl font-bold mb-2 text-center">{localStorage.getItem("playerName") ? "Edit Account" : "Create Account"}</h2>
+							<input
+								type="text"
+								placeholder="Player Name"
+								value={playerName}
+								onChange={e => setPlayerName(e.target.value)}
+								className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
+								required
+							/>
+							<input
+								type="password"
+								placeholder="Password"
+								value={password}
+								onChange={e => setPassword(e.target.value)}
+								className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
+								required
+							/>
+							<button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition">Save</button>
+						</form>
+					</div>
+				)}
+				{/* Win/Lose Banner Overlay */}
+				{showBanner === "lose" && (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fadeIn animate-fadeOut">
+						<div className="text-6xl font-extrabold text-red-500 drop-shadow-lg animate-fadeInUp animate-fadeOut">
+							YOU LOSE
+						</div>
+					</div>
+				)}
+				{showBanner === "win" && (
+					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fadeIn animate-fadeOut">
+						<div className="text-6xl font-extrabold text-green-500 drop-shadow-lg animate-fadeInUp animate-fadeOut">
+							YOU WIN
+						</div>
+					</div>
+				)}
+				{/* Top-right HUD */}
+				<div className="absolute top-4 right-4 flex flex-col items-end gap-2">
 					<button
-						className={`px-6 py-3 rounded-xl font-bold text-white text-lg shadow-lg ${killAvailable ? 'bg-black hover:bg-gray-800' : 'bg-gray-400 cursor-not-allowed'}`}
-						disabled={!killAvailable}
-						onClick={handleKill}
+						className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded-md font-semibold border border-gray-400 dark:border-gray-600 hover:bg-blue-500 hover:text-white transition"
+						onClick={() => router.push("/")}
 					>
-						Kill {killAvailable ? '' : `(Cooldown: ${killCooldown} duels)`}
+						Solo Mode
 					</button>
-					{showKillMsg && (
-						<div className="mt-2 text-white bg-black/80 px-3 py-1 rounded">{showKillMsg}</div>
-					)}
-				</div>
-			)}
-			{/* Sabotage Button: only for Advanced Typer in duel mode */}
-			{equippedCharacter === 'advanced-typer' && (
-				<div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
 					<button
-						className={`px-6 py-3 rounded-xl font-bold text-white text-lg shadow-lg ${sabotageAvailable ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-400 cursor-not-allowed'}`}
-						disabled={!sabotageAvailable}
-						onClick={handleSabotage}
+						className="bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white px-3 py-1 rounded-md font-semibold border border-yellow-600 hover:bg-yellow-500 mt-2 transition"
+						onClick={handleEditAccount}
 					>
-						Sabotage {sabotageAvailable ? '' : `(Cooldown: ${sabotageCooldown} duels)`}
+						Edit Account
 					</button>
-					{showSabotageMsg && (
-						<div className="mt-2 text-white bg-black/80 px-3 py-1 rounded">{showSabotageMsg}</div>
-					)}
-				</div>
-			)}
-			{/* Account Modal */}
-			{showAccountModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-					<form onSubmit={handleAccountSubmit} className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px]">
-						<h2 className="text-2xl font-bold mb-2 text-center">{localStorage.getItem("playerName") ? "Edit Account" : "Create Account"}</h2>
-						<input
-							type="text"
-							placeholder="Player Name"
-							value={playerName}
-							onChange={e => setPlayerName(e.target.value)}
-							className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
-							required
-						/>
-						<input
-							type="password"
-							placeholder="Password"
-							value={password}
-							onChange={e => setPassword(e.target.value)}
-							className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
-							required
-						/>
-						<button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition">Save</button>
-					</form>
-				</div>
-			)}
-			{/* Win/Lose Banner Overlay */}
-			{showBanner === "lose" && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fadeIn animate-fadeOut">
-					<div className="text-6xl font-extrabold text-red-500 drop-shadow-lg animate-fadeInUp animate-fadeOut">
-						YOU LOSE
+					<div className="bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700 p-3 rounded-lg shadow-md text-right min-w-[140px]">
+						<p>⚔️ Duel Points: <span className="font-bold">{duelPoints}</span></p>
 					</div>
 				</div>
-			)}
-			{showBanner === "win" && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 animate-fadeIn animate-fadeOut">
-					<div className="text-6xl font-extrabold text-green-500 drop-shadow-lg animate-fadeInUp animate-fadeOut">
-						YOU WIN
+				<h1 className="text-3xl font-bold mb-6 text-center">⚔️ Duel Mode <span className="text-base font-normal text-gray-500 dark:text-gray-400">({playerName && `Player: ${playerName}`})</span></h1>
+				<div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg max-w-2xl w-full">
+					<p className="mb-2 text-lg text-gray-700 dark:text-gray-300">Type this sentence faster than <span className="font-bold text-blue-600 dark:text-blue-400">{opponentName}</span>:</p>
+					<div className="mb-4 bg-blue-100 dark:bg-blue-900 p-3 rounded-md text-wrap break-words">
+						{renderHighlightedTarget()}
 					</div>
-				</div>
-			)}
-			{/* Top-right HUD */}
-			<div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-				<button
-					className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded-md font-semibold border border-gray-400 dark:border-gray-600 hover:bg-blue-500 hover:text-white transition"
-					onClick={() => router.push("/")}
-				>
-					Solo Mode
-				</button>
-				<button
-					className="bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white px-3 py-1 rounded-md font-semibold border border-yellow-600 hover:bg-yellow-500 mt-2 transition"
-					onClick={handleEditAccount}
-				>
-					Edit Account
-				</button>
-				<div className="bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700 p-3 rounded-lg shadow-md text-right min-w-[140px]">
-					<p>⚔️ Duel Points: <span className="font-bold">{duelPoints}</span></p>
-				</div>
-			</div>
-			<h1 className="text-3xl font-bold mb-6 text-center">⚔️ Duel Mode <span className="text-base font-normal text-gray-500 dark:text-gray-400">({playerName && `Player: ${playerName}`})</span></h1>
-			<div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg max-w-2xl w-full">
-				<p className="mb-2 text-lg text-gray-700 dark:text-gray-300">Type this sentence faster than <span className="font-bold text-blue-600 dark:text-blue-400">{opponentName}</span>:</p>
-				<div className="mb-4 bg-blue-100 dark:bg-blue-900 p-3 rounded-md text-wrap break-words">
-					{renderHighlightedTarget()}
-				</div>
-				<input
-					type="text"
-					value={input}
-					onChange={handleInputChange}
-					onKeyDown={e => {
-						if (
-							(equippedCharacter === 'default-typer' || equippedCharacter === 'pro') &&
-							e.key === 'Enter' &&
-							skipUsed < maxSkips &&
-							!userFinished &&
-							!aiFinished
-						) {
-							const nextSpace = target.indexOf(' ', input.length);
-							if (nextSpace !== -1) {
-								setInput(target.slice(0, nextSpace + 1));
-							} else {
-								setInput(target);
+					<input
+						type="text"
+						value={input}
+						onChange={handleInputChange}
+						onKeyDown={e => {
+							if (
+								(equippedCharacter === 'default-typer' || equippedCharacter === 'pro') &&
+								e.key === 'Enter' &&
+								skipUsed < maxSkips &&
+								!userFinished &&
+								!aiFinished
+							) {
+								const nextSpace = target.indexOf(' ', input.length);
+								if (nextSpace !== -1) {
+									setInput(target.slice(0, nextSpace + 1));
+								} else {
+									setInput(target);
+								}
+								setSkipUsed(skipUsed + 1);
+								e.preventDefault();
 							}
-							setSkipUsed(skipUsed + 1);
-							e.preventDefault();
-						}
-					}}
-					className="w-full p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
-					placeholder="Start typing..."
-					autoFocus
-					spellCheck={false}
-					autoComplete="off"
-					autoCorrect="off"
-					disabled={userFinished || aiFinished}
-				/>
-				{result && (
-					<p className={`mt-3 text-lg font-semibold ${result.startsWith("❌") ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>{result}</p>
-				)}
-				{wpm !== null && (
-					<div className="mt-3 text-sm text-gray-700 dark:text-gray-300">
-						🕐 WPM: <span className="font-bold">{wpm}</span><br />
-						🎯 Accuracy: <span className="font-bold">{accuracy}</span>%
+						}}
+						className="w-full p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
+						placeholder="Start typing..."
+						autoFocus
+						spellCheck={false}
+						autoComplete="off"
+						autoCorrect="off"
+						disabled={userFinished || aiFinished}
+					/>
+					{result && (
+						<p className={`mt-3 text-lg font-semibold ${result.startsWith("❌") ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>{result}</p>
+					)}
+					{wpm !== null && (
+						<div className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+							🕐 WPM: <span className="font-bold">{wpm}</span><br />
+							🎯 Accuracy: <span className="font-bold">{accuracy}</span>%
+						</div>
+					)}
+					<div className="mt-6 text-center">
+						<button
+							className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition"
+							onClick={handleNextDuel}
+							disabled={!userFinished && !aiFinished}
+						>
+							Next Duel
+						</button>
 					</div>
-				)}
-				<div className="mt-6 text-center">
-					<button
-						className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition"
-						onClick={handleNextDuel}
-						disabled={!userFinished && !aiFinished}
-					>
-						Next Duel
-					</button>
 				</div>
-			</div>
-		</main>
+			</main>
+		)
 	);
 }

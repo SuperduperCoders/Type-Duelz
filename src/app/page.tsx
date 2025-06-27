@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useErrorAudio } from "../hooks/useErrorAudio";
 
 const sentenceBank = {
   easy: [
@@ -69,30 +70,47 @@ export default function Home() {
   const [skipUsed, setSkipUsed] = useState(0); // now a counter
   const maxSkips = equippedCharacter === 'default-typer' ? 1 : 0;
 
-  // Theme state
-  const [theme, setTheme] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') || 'light';
-    }
-    return 'light';
-  });
-
   // Error state for name taken
   const [nameError, setNameError] = useState('');
 
   // Audio ref for typing sound
   const typingAudioRef = useRef<HTMLAudioElement | null>(null);
+  // Use error audio hook
+  const { errorAudioRef, playError } = useErrorAudio();
+  // Click sound ref
+  const clickAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Duel points state
+  const [duelPoints, setDuelPoints] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('duelPoints');
+      return saved ? parseInt(saved, 10) : 0;
+    }
+    return 0;
+  });
+
+  // Track duels since last master typer ability use
+  const [masterTyperDuelCount, setMasterTyperDuelCount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('masterTyperDuelCount');
+      return saved ? parseInt(saved, 10) : 4; // default to 4 so ability is available on first load
+    }
+    return 4;
+  });
+
+  // Loading state
+  const [loading, setLoading] = useState(true);
 
   // --- THEME PERSISTENCE ON LOAD ---
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme) {
-        document.documentElement.classList.remove('light', 'dark');
-        document.documentElement.classList.add(savedTheme);
-      }
-    }
-  }, []);
+  // useEffect(() => {
+  //   if (typeof window !== 'undefined') {
+  //     const savedTheme = localStorage.getItem('theme');
+  //     if (savedTheme) {
+  //       document.documentElement.classList.remove('light', 'dark');
+  //       document.documentElement.classList.add(savedTheme);
+  //     }
+  //   }
+  // }, []);
 
   useEffect(() => {
     generateSentence();
@@ -100,9 +118,7 @@ export default function Home() {
 
   useEffect(() => {
     // When target sentence is set, we consider loading done
-    // if (target) {
-    //   setLoading(false);
-    // }
+    if (target) setLoading(false);
   }, [target]);
 
   useEffect(() => {
@@ -134,11 +150,6 @@ export default function Home() {
       const savedWpmHistory = localStorage.getItem('wpmHistory');
       if (savedWpmHistory) setWpmHistory(JSON.parse(savedWpmHistory));
     }
-    // Theme
-    if (typeof window !== 'undefined') {
-      const savedTheme = localStorage.getItem('theme');
-      if (savedTheme) setTheme(savedTheme);
-    }
   }, []);
 
   useEffect(() => {
@@ -152,14 +163,19 @@ export default function Home() {
     setSkipUsed(0);
   }, [target]);
 
-  // Apply theme to document root
+  // Save duel points to localStorage when changed
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      document.documentElement.classList.remove('light', 'dark');
-      document.documentElement.classList.add(theme);
-      localStorage.setItem('theme', theme);
+      localStorage.setItem('duelPoints', duelPoints.toString());
     }
-  }, [theme]);
+  }, [duelPoints]);
+
+  // Persist masterTyperDuelCount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('masterTyperDuelCount', masterTyperDuelCount.toString());
+    }
+  }, [masterTyperDuelCount]);
 
   // Helper to determine if we're in duel mode
   const isDuelMode = typeof window !== 'undefined' && window.location.pathname === '/duel';
@@ -190,12 +206,16 @@ export default function Home() {
     setIsFinished(false);
   };
 
+  // Fix accuracy calculation to ignore trailing spaces
   const calculateAccuracy = (typed: string, correct: string) => {
     let correctCount = 0;
-    for (let i = 0; i < typed.length; i++) {
+    let checkedLength = Math.min(typed.length, correct.length);
+    for (let i = 0; i < checkedLength; i++) {
       if (typed[i] === correct[i]) correctCount++;
     }
-    return typed.length > 0 ? Math.round((correctCount / typed.length) * 100) : 100;
+    // Only count up to the last non-space character in typed
+    let lastCharIdx = typed.trimEnd().length;
+    return lastCharIdx > 0 ? Math.round((correctCount / lastCharIdx) * 100) : 100;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,15 +223,36 @@ export default function Home() {
 
     const newVal = e.target.value;
 
-    if (newVal.length < input.length) return; // prevent going backwards
-    if (newVal.length > input.length + 1) return; // no skipping chars
+    // Prevent going backwards
+    if (newVal.length < input.length) return;
+    // Prevent skipping chars
+    if (newVal.length > input.length + 1) return;
+
+    // SOLO MODE: Only allow typing the next character if it matches the target
+    if (!isDuelMode && newVal.length > 0) {
+      // Check all previous letters
+      for (let i = 0; i < newVal.length - 1; i++) {
+        if (newVal[i] !== target[i]) {
+          playError();
+          return;
+        }
+      }
+      // Block if the new letter is not correct
+      if (newVal[newVal.length - 1] !== target[newVal.length - 1]) {
+        playError();
+        return;
+      }
+    }
 
     setInput(newVal);
 
-    // Play typing sound
+    // Play typing sound in both solo and duel mode (force play by pausing and setting currentTime)
     if (typingAudioRef.current) {
+      typingAudioRef.current.pause();
       typingAudioRef.current.currentTime = 0;
-      typingAudioRef.current.play();
+      typingAudioRef.current.play().catch((e) => {
+        console.log('Typing audio play failed:', e);
+      });
     }
 
     const liveAccuracy = calculateAccuracy(newVal, target);
@@ -286,8 +327,8 @@ export default function Home() {
   const progressPercent = wpm && currentGoal ? Math.min((wpm / currentGoal) * 100, 100) : 0;
 
   const goalMet = wpm !== null && wpm >= currentGoal;
-  const wpmColorClass = goalMet ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-  const progressBarColor = goalMet ? 'bg-green-600 dark:bg-green-400' : 'bg-red-600 dark:bg-red-400';
+  const wpmColorClass = goalMet ? 'text-green-600' : 'text-red-600';
+  const progressBarColor = goalMet ? 'bg-green-600' : 'bg-red-600';
 
   const renderHighlightedTarget = () => {
     return (
@@ -298,18 +339,18 @@ export default function Home() {
 
           if (char === ' ') {
             char = '␣';
-            className += ' bg-gray-300 dark:bg-gray-700 rounded';
+            className += ' bg-gray-300 rounded';
           }
 
           if (idx < input.length) {
             className +=
               currentChar === target[idx]
-                ? ' text-green-600 dark:text-green-400'
-                : ' text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900';
+                ? ' text-green-600'
+                : ' text-red-600 bg-red-100';
           } else if (idx === input.length) {
-            className += ' bg-yellow-200 dark:bg-yellow-500 text-black rounded';
+            className += ' bg-yellow-200 text-black rounded';
           } else {
-            className += ' text-gray-500 dark:text-gray-400';
+            className += ' text-gray-500';
           }
 
           return (
@@ -322,55 +363,101 @@ export default function Home() {
     );
   };
 
+  // Play click sound
+  const playClick = () => {
+    if (clickAudioRef.current) {
+      clickAudioRef.current.currentTime = 0;
+      clickAudioRef.current.play();
+    }
+  };
+
+  // Unlock typing audio on first user interaction (for autoplay policy, improved reliability)
+  useEffect(() => {
+    let unlocked = false;
+    const unlockAudio = () => {
+      if (!unlocked && typingAudioRef.current) {
+        typingAudioRef.current.load();
+        typingAudioRef.current.play().then(() => {
+          typingAudioRef.current?.pause();
+          typingAudioRef.current!.currentTime = 0;
+          unlocked = true;
+          console.log('Typing audio unlocked');
+        }).catch((e) => {
+          unlocked = true;
+          console.log('Typing audio unlock failed:', e);
+        });
+      }
+      window.removeEventListener('keydown', unlockAudio);
+      window.removeEventListener('pointerdown', unlockAudio);
+    };
+    window.addEventListener('keydown', unlockAudio);
+    window.addEventListener('pointerdown', unlockAudio);
+    return () => {
+      window.removeEventListener('keydown', unlockAudio);
+      window.removeEventListener('pointerdown', unlockAudio);
+    };
+  }, []);
+
   // Main UI when loaded
   return (
-    <main className="relative min-h-screen flex flex-col items-stretch bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-gray-900 p-0">
+    <main className="relative min-h-screen flex flex-col items-stretch bg-gradient-to-br from-white to-slate-100 p-0">
+      {/* Click and typing audio */}
+      <audio ref={typingAudioRef} src="/typing.mp3" preload="auto" />
+      <audio ref={errorAudioRef} src="/error.mp3" preload="auto" />
+      <audio ref={clickAudioRef} src="/click.mp3" preload="auto" />
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+          <div className="text-white text-3xl font-bold animate-pulse">Loading...</div>
+        </div>
+      )}
 
       {/* Top navigation buttons - stick to top */}
-      <div className="fixed top-0 left-0 w-full flex flex-row justify-end gap-2 p-4 bg-white/80 dark:bg-black/80 z-50 shadow-md">
+      <div className="fixed top-0 left-0 w-full flex flex-row justify-end gap-2 p-4 bg-white/80 z-50 shadow-md">
         <button
-          className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded-md font-semibold border border-gray-400 dark:border-gray-600 hover:bg-blue-500 hover:text-white transition"
-          onClick={() => window.location.href = '/duel'}
+          className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md font-semibold border border-gray-400 hover:bg-blue-500 hover:text-white transition"
+          onClick={() => { playClick(); window.location.href = '/duel'; }}
         >
           Duel Mode
         </button>
         <button
-          className="bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white px-3 py-1 rounded-md font-semibold border border-yellow-600 hover:bg-yellow-500 transition"
-          onClick={handleEditAccount}
+          className="bg-yellow-400 text-black px-3 py-1 rounded-md font-semibold border border-yellow-600 hover:bg-yellow-500 transition"
+          onClick={() => { playClick(); handleEditAccount(); }}
         >
           Edit Account
         </button>
         <button
           className="bg-purple-500 text-white px-4 py-2 rounded-md font-semibold border border-purple-700 hover:bg-purple-600 transition"
-          onClick={() => window.location.href = '/characters'}
+          onClick={() => { playClick(); window.location.href = '/characters'; }}
         >
           Characters
         </button>
         <button
           className="bg-gray-900 text-white px-4 py-2 rounded-md font-semibold border border-gray-900 hover:bg-gray-700 transition"
-          onClick={() => window.location.href = '/settings'}
+          onClick={() => { playClick(); window.location.href = '/settings'; }}
         >
           Settings
-        </button>
-        <button
-          className="bg-gray-500 text-white px-3 py-1 rounded-md font-semibold border border-gray-700 hover:bg-gray-600 transition"
-          onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-        >
-          {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
         </button>
       </div>
       <div className="h-20" /> {/* Spacer for fixed nav */}
 
+      {/* Duel Points Display */}
+      <div className="fixed top-4 left-4 z-50 bg-white/90 border border-gray-300 rounded-xl px-5 py-3 shadow-lg text-left">
+        <div className="text-xs text-gray-500 font-semibold mb-1">Duel Points</div>
+        <div className="text-lg font-bold text-purple-700">{duelPoints}</div>
+      </div>
+
       {/* Difficulty Panel */}
       <div className="flex justify-center mb-8">
-        <div className="inline-flex gap-2 bg-gray-200 dark:bg-gray-700 rounded-lg p-2 shadow">
+        <div className="inline-flex gap-2 bg-gray-200 rounded-lg p-2 shadow">
           <button
             className={`px-4 py-2 rounded-md font-semibold transition ${
               difficulty === 'easy'
                 ? 'bg-green-400 text-white shadow'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
+                : 'bg-gray-100 text-gray-700'
             }`}
-            onClick={() => setDifficulty('easy')}
+            onClick={() => { playClick(); setDifficulty('easy'); }}
           >
             Easy
           </button>
@@ -378,9 +465,9 @@ export default function Home() {
             className={`px-4 py-2 rounded-md font-semibold transition ${
               difficulty === 'medium'
                 ? 'bg-yellow-400 text-white shadow'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
+                : 'bg-gray-100 text-gray-700'
             }`}
-            onClick={() => setDifficulty('medium')}
+            onClick={() => { playClick(); setDifficulty('medium'); }}
           >
             Medium
           </button>
@@ -388,9 +475,9 @@ export default function Home() {
             className={`px-4 py-2 rounded-md font-semibold transition ${
               difficulty === 'hard'
                 ? 'bg-red-500 text-white shadow'
-                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
+                : 'bg-gray-100 text-gray-700'
             }`}
-            onClick={() => setDifficulty('hard')}
+            onClick={() => { playClick(); setDifficulty('hard'); }}
           >
             Hard
           </button>
@@ -404,12 +491,12 @@ export default function Home() {
         <span className="block text-4xl font-extrabold mt-[-0.5rem] ml-32 text-red-600 drop-shadow-lg animate-pulse tracking-wider">
           DUELZ
         </span>
-        <span className="block text-base font-normal text-gray-500 dark:text-gray-400 mt-2">{playerName && `(Player: ${playerName})`}</span>
+        <span className="block text-base font-normal text-gray-500 mt-2">{playerName && `(Player: ${playerName})`}</span>
       </h1>
 
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg max-w-xl w-full mt-24 mx-auto">
-        <p className="mb-2 text-lg text-gray-700 dark:text-gray-300">Type this sentence:</p>
-        <div className="mb-4 bg-blue-100 dark:bg-blue-900 p-3 rounded-md text-wrap break-words">
+      <div className="bg-white p-6 rounded-2xl shadow-lg max-w-xl w-full mt-24 mx-auto">
+        <p className="mb-2 text-lg text-gray-700">Type this sentence:</p>
+        <div className="mb-4 bg-blue-100 p-3 rounded-md text-wrap break-words">
           {renderHighlightedTarget()}
         </div>
 
@@ -424,18 +511,31 @@ export default function Home() {
               skipUsed < maxSkips &&
               !isFinished
             ) {
+              // Only allow skip if at a space or the current character is correct
+              const currentIdx = input.length;
+              if (target[currentIdx] !== ' ' && input[currentIdx] !== target[currentIdx]) {
+                // Block skip if not at a space and not correct
+                e.preventDefault();
+                return;
+              }
               // Find the next space after the current input
               const nextSpace = target.indexOf(' ', input.length);
-              if (nextSpace !== -1) {
-                setInput(target.slice(0, nextSpace + 1));
-              } else {
-                setInput(target); // If no more spaces, fill to end
+              let newInput = input;
+              if (nextSpace !== -1 && nextSpace > input.length) {
+                // Add spaces up to the next space, but don't add extra if already at space
+                const toAdd = target.slice(input.length, nextSpace + 1).replace(/[^ ]/g, '');
+                newInput += toAdd;
+              } else if (nextSpace === -1 && input.length < target.length) {
+                // At the end, add spaces up to the end if any
+                const toAdd = target.slice(input.length).replace(/[^ ]/g, '');
+                newInput += toAdd;
               }
+              setInput(newInput);
               setSkipUsed(skipUsed + 1);
               e.preventDefault();
             }
           }}
-          className="w-full p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
+          className="w-full p-3 border rounded-md text-black"
           placeholder="Start typing..."
           autoFocus
           spellCheck={false}
@@ -445,32 +545,32 @@ export default function Home() {
         />
 
         {feedback && (
-          <p className="mt-3 text-lg font-semibold text-green-600 dark:text-green-400 animate-bounce">{feedback}</p>
+          <p className="mt-3 text-lg font-semibold text-green-600 animate-bounce">{feedback}</p>
         )}
 
         {wpm !== null ? (
           <>
-            <div className={`mt-3 text-sm ${wpmColorClass}`}>
+            <div className={`mt-3 text-sm ${goalMet ? 'text-green-600' : 'text-red-600'}`}>
               🕐 WPM: <span className="font-bold">{wpm}</span><br />
               🎯 Accuracy: <span className="font-bold">{accuracy}</span>%
             </div>
             {/* Progress bar */}
-            <div className="w-full bg-gray-300 dark:bg-gray-700 h-3 rounded-full mt-2 overflow-hidden">
+            <div className="w-full bg-gray-300 h-3 rounded-full mt-2 overflow-hidden">
               <div
-                className={`${progressBarColor} h-full transition-all duration-500`}
+                className={`${goalMet ? 'bg-green-600' : 'bg-red-600'} h-full transition-all duration-500`}
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
           </>
         ) : (
           // Show live accuracy while typing before completion
-          <div className="mt-3 text-sm text-gray-700 dark:text-gray-300">
+          <div className="mt-3 text-sm text-gray-700">
             🎯 Accuracy: <span className="font-bold">{accuracy}</span>%
           </div>
         )}
 
         <div className="mt-6 text-center">
-          <p className="text-gray-600 dark:text-gray-300 text-sm">
+          <p className="text-gray-600 text-sm">
             🧠 Skill Level: <span className="font-bold">{skill}</span>
           </p>
         </div>
@@ -479,14 +579,14 @@ export default function Home() {
       {/* Account Modal */}
       {showAccountModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <form onSubmit={handleAccountSubmit} className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px]">
+          <form onSubmit={handleAccountSubmit} className="bg-white p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px]">
             <h2 className="text-2xl font-bold mb-2 text-center">{playerName ? "Edit Account" : "Create Account"}</h2>
             <input
               type="text"
               placeholder="Player Name"
               value={playerName}
               onChange={e => { setPlayerName(e.target.value); setNameError(''); }}
-              className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
+              className="p-3 border rounded-md text-black"
               required
             />
             <input
@@ -494,19 +594,19 @@ export default function Home() {
               placeholder="Password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
+              className="p-3 border rounded-md text-black"
               required
             />
-            {nameError && <div className="text-red-600 dark:text-red-400 text-sm font-semibold">{nameError}</div>}
-            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition">Save</button>
+            {nameError && <div className="text-red-600 text-sm font-semibold">{nameError}</div>}
+            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition" onClick={playClick}>Save</button>
           </form>
         </div>
       )}
 
       {/* Average Accuracy Floating Corner */}
-      <div className="fixed bottom-4 right-4 z-50 bg-white/90 dark:bg-gray-900/90 border border-gray-300 dark:border-gray-700 rounded-xl px-5 py-3 shadow-lg text-right">
-        <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold mb-1">Avg. Accuracy</div>
-        <div className="text-lg font-bold text-blue-700 dark:text-blue-300">
+      <div className="fixed bottom-4 right-4 z-50 bg-white/90 border border-gray-300 rounded-xl px-5 py-3 shadow-lg text-right">
+        <div className="text-xs text-gray-500 font-semibold mb-1">Avg. Accuracy</div>
+        <div className="text-lg font-bold text-blue-700">
           {/* Since only the latest accuracy is tracked, show average of all completed rounds as 100% for now, or N/A if none */}
           {wpmHistory.length > 0 ? `${Math.round(accuracy)}%` : 'N/A'}
         </div>
