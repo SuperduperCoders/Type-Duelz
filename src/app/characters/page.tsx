@@ -8,24 +8,31 @@ const characters = [
 		name: 'Default Typer',
 		cost: { duelPoints: 10, skillPoints: 20 },
 		ownedKey: 'char_default_typer',
-		ability: 'Skip one word per sentence by pressing Enter (usable once per sentence).',
+		ability: 'Skipper',
 		image: '/file.svg', // Fixed: removed /public
 	},
 	{
 		id: 'pro',
-		name: 'Pro',
+		name: 'Good Typer',
 		cost: { duelPoints: 30, skillPoints: 50 },
 		ownedKey: 'char_pro',
 		ability: 'In Duel Mode, has a 50% chance to get a shorter sentence!',
 		image: '/globe.svg', // Fixed: removed /public
 	},
-
+	{
+		id: 'pro-wihich',
+		name: 'Pro Typer',
+		cost: { duelPoints: 60, skillPoints: 100 },
+		ownedKey: 'char_pro_wihich',
+		ability: `When pressing Enter, makes the whole screen red then skips three whole words (usable once per sentence).`,
+		image: '/next.svg',
+	},
 	{
 		id: 'advanced-typer',
 		name: 'Advanced Typer',
 		cost: { duelPoints: 100, skillPoints: 200 },
 		ownedKey: 'char_advanced_typer',
-		ability: `All abilities of Default Typer and Pro. In Duel Mode: 50% chance for a shorter sentence, skip up to 3 words per sentence, and once every 3 duels you can use 'Sabotage' to restart the AI to the front of the sentence.`,
+		ability: `Sabatoge`,
 		image: '/vercel.svg', // Fixed: removed /public
 	},
 	{
@@ -33,7 +40,7 @@ const characters = [
 		name: 'Master',
 		cost: { duelPoints: 200, skillPoints: 400 },
 		ownedKey: 'char_master',
-		ability: `In Duel Mode: Once every 2 duels, use 'Kill' to reset the AI and set it to the last word in the sentence.`,
+		ability: `Murder`,
 		image: '/window.svg', // Fixed: removed /public
 	},
 ];

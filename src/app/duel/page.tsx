@@ -17,8 +17,6 @@ export default function Duel() {
 	const [target, setTarget] = useState("");
 	const [input, setInput] = useState("");
 	const [aiIndex, setAiIndex] = useState(0);
-	// Set AI speed to 20 WPM (words per minute)
-	// 1 word = 5 chars, so 20wpm = 100 chars/min = 600ms per char
 	const [aiSpeed, setAiSpeed] = useState(600); // ms per char for 20wpm
 	const [aiFinished, setAiFinished] = useState(false);
 	const [userFinished, setUserFinished] = useState(false);
@@ -44,7 +42,7 @@ export default function Duel() {
 	// Track equipped character and skip ability
 	const [equippedCharacter, setEquippedCharacter] = useState<string | null>(null);
 	const [skipUsed, setSkipUsed] = useState(0); // now a counter
-	const maxSkips = equippedCharacter === 'pro' ? 3 : equippedCharacter === 'default-typer' ? 1 : 0;
+	const maxSkips = equippedCharacter === 'good typer' ? 3 : equippedCharacter === 'default-typer' ? 1 : 0;
 
 	// Sabotage ability state
 	const [sabotageCooldown, setSabotageCooldown] = useState(0);
@@ -61,10 +59,14 @@ export default function Duel() {
 	// Use error audio hook
 	const { errorAudioRef, playError } = useErrorAudio();
 
+	const [proWihichUsed, setProWihichUsed] = useState(false);
+	const [showRedOverlay, setShowRedOverlay] = useState(false);
+
 	useEffect(() => {
 		setHasMounted(true);
 	}, []);
 
+	// On mount or duelPoints change, pick a new sentence but don't start duel yet
 	useEffect(() => {
 		if (!hasMounted) return;
 		// Pick a random long sentence
@@ -89,6 +91,7 @@ export default function Duel() {
 		setOpponentName(`player${Math.floor(100 + Math.random() * 900)}`);
 	}, [duelPoints, hasMounted]);
 
+	// Only start AI progress after duelStarted is true
 	useEffect(() => {
 		if (aiFinished || userFinished) return;
 		if (aiIndex < target.length) {
@@ -104,18 +107,28 @@ export default function Duel() {
 
 	useEffect(() => {
 		let timeout: ReturnType<typeof setTimeout> | undefined;
+		let redirectTimeout: ReturnType<typeof setTimeout> | undefined;
 		// Only show banner if result is not empty, not just on mount
 		if (result && !result.startsWith("❌") && result.toLowerCase().includes("you win")) {
 			setShowBanner("win");
 			timeout = setTimeout(() => setShowBanner("") , 3000);
+			// Redirect to solo mode AFTER banner disappears
+			redirectTimeout = setTimeout(() => router.push("/"), 3000);
 		} else if (result && result.startsWith("❌") && !result.includes('Try again.') && result !== `❌ ${opponentName} wins! Try again.`) {
-			// Only show lose banner if it's a real loss, not on mount or reset
 			setShowBanner("lose");
 			timeout = setTimeout(() => setShowBanner("") , 3000);
+			redirectTimeout = setTimeout(() => router.push("/"), 3000);
+		} else if (result && result === `❌ ${opponentName} wins! Try again.`) {
+			setShowBanner("lose");
+			timeout = setTimeout(() => setShowBanner("") , 3000);
+			redirectTimeout = setTimeout(() => router.push("/"), 3000);
 		} else {
 			setShowBanner("");
 		}
-		return () => timeout && clearTimeout(timeout);
+		return () => {
+		if (timeout) clearTimeout(timeout);
+		if (redirectTimeout) clearTimeout(redirectTimeout);
+		};
 	}, [result, opponentName]);
 
 	// On mount, check for saved player info
@@ -213,6 +226,21 @@ export default function Duel() {
 			window.removeEventListener('pointerdown', unlockAudio);
 		};
 	}, []);
+
+	// Load duel points from localStorage on mount
+	useEffect(() => {
+		if (!hasMounted) return;
+		const savedPoints = localStorage.getItem("duelPoints");
+		if (savedPoints !== null) {
+			setDuelPoints(Number(savedPoints));
+		}
+	}, [hasMounted]);
+
+	// Save duel points to localStorage whenever they change
+	useEffect(() => {
+		if (!hasMounted) return;
+		localStorage.setItem("duelPoints", duelPoints.toString());
+	}, [duelPoints, hasMounted]);
 
 	const calculateAccuracy = (typed: string, correct: string) => {
 		let correctCount = 0;
@@ -352,7 +380,6 @@ export default function Duel() {
 
 	// Remove cooldown decrement from handleNextDuel (now handled in useEffect)
 	const handleNextDuel = () => {
-		setDuelPoints((p) => p);
 		setTarget(duelSentences[Math.floor(Math.random() * duelSentences.length)]);
 		setInput("");
 		setAiIndex(0);
@@ -458,13 +485,14 @@ export default function Duel() {
 						Edit Account
 					</button>
 					<div className="bg-white dark:bg-gray-800 text-sm text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-gray-700 p-3 rounded-lg shadow-md text-right min-w-[140px]">
-						<p>⚔️ Duel Points: <span className="font-bold">{duelPoints}</span></p>
+						<p>⚔️ Duel Points: <span className="font-bold">{hasMounted ? duelPoints : "-"}</span></p>
 					</div>
 				</div>
 				<h1 className="text-3xl font-bold mb-6 text-center">⚔️ Duel Mode <span className="text-base font-normal text-gray-500 dark:text-gray-400">({playerName && `Player: ${playerName}`})</span></h1>
 				<div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg max-w-2xl w-full">
 					<p className="mb-2 text-lg text-gray-700 dark:text-gray-300">Type this sentence faster than <span className="font-bold text-blue-600 dark:text-blue-400">{opponentName}</span>:</p>
 					<div className="mb-4 bg-blue-100 dark:bg-blue-900 p-3 rounded-md text-wrap break-words">
+						{/* Show the sentence only after duel starts, otherwise show placeholder */}
 						{renderHighlightedTarget()}
 					</div>
 					<input
@@ -473,7 +501,7 @@ export default function Duel() {
 						onChange={handleInputChange}
 						onKeyDown={e => {
 							if (
-								(equippedCharacter === 'default-typer' || equippedCharacter === 'pro') &&
+								(equippedCharacter === 'default-typer' || equippedCharacter === 'good typer') &&
 								e.key === 'Enter' &&
 								skipUsed < maxSkips &&
 								!userFinished &&
@@ -488,34 +516,39 @@ export default function Duel() {
 								setSkipUsed(skipUsed + 1);
 								e.preventDefault();
 							}
+							// Pro Typer ability: skip 3 words and flash red
+							if (
+								equippedCharacter === 'pro-wihich' &&
+								e.key === 'Enter' &&
+								!proWihichUsed &&
+								!userFinished &&
+								!aiFinished
+							) {
+								setShowRedOverlay(true);
+								setTimeout(() => setShowRedOverlay(false), 500);
+								// Skip 3 words
+								let wordCount = 0;
+								let idx = input.length;
+								while (wordCount < 3 && idx < target.length) {
+									if (target[idx] === ' ') wordCount++;
+									idx++;
+								}
+								setInput(target.slice(0, idx));
+								setProWihichUsed(true);
+								e.preventDefault();
+							}
 						}}
-						className="w-full p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
+						className="w-full p-4 text-2xl border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-white"
 						placeholder="Start typing..."
-						autoFocus
-						spellCheck={false}
+						autoCapitalize="none"
 						autoComplete="off"
 						autoCorrect="off"
 						disabled={userFinished || aiFinished}
 					/>
-					{result && (
-						<p className={`mt-3 text-lg font-semibold ${result.startsWith("❌") ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>{result}</p>
-					)}
-					{wpm !== null && (
-						<div className="mt-3 text-sm text-gray-700 dark:text-gray-300">
-							🕐 WPM: <span className="font-bold">{wpm}</span><br />
-							🎯 Accuracy: <span className="font-bold">{accuracy}</span>%
-						</div>
-					)}
-					<div className="mt-6 text-center">
-						<button
-							className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition"
-							onClick={handleNextDuel}
-							disabled={!userFinished && !aiFinished}
-						>
-							Next Duel
-						</button>
-					</div>
 				</div>
+				{showRedOverlay && (
+					<div className="fixed inset-0 z-[100] bg-red-600 opacity-80 pointer-events-none animate-fadeIn animate-fadeOut"></div>
+				)}
 			</main>
 		)
 	);
