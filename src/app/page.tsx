@@ -81,21 +81,12 @@ export default function Home() {
   const clickAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Duel points state
-  const [duelPoints, setDuelPoints] = useState(() => {
+  const [duelPoints] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('duelPoints');
       return saved ? parseInt(saved, 10) : 0;
     }
     return 0;
-  });
-
-  // Track duels since last master typer ability use
-  const [masterTyperDuelCount, setMasterTyperDuelCount] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('masterTyperDuelCount');
-      return saved ? parseInt(saved, 10) : 4; // default to 4 so ability is available on first load
-    }
-    return 4;
   });
 
   // Loading state
@@ -163,20 +154,6 @@ export default function Home() {
     setSkipUsed(0);
   }, [target]);
 
-  // Save duel points to localStorage when changed
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('duelPoints', duelPoints.toString());
-    }
-  }, [duelPoints]);
-
-  // Persist masterTyperDuelCount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('masterTyperDuelCount', masterTyperDuelCount.toString());
-    }
-  }, [masterTyperDuelCount]);
-
   // Helper to determine if we're in duel mode
   const isDuelMode = typeof window !== 'undefined' && window.location.pathname === '/duel';
 
@@ -209,12 +186,12 @@ export default function Home() {
   // Fix accuracy calculation to ignore trailing spaces
   const calculateAccuracy = (typed: string, correct: string) => {
     let correctCount = 0;
-    let checkedLength = Math.min(typed.length, correct.length);
+    const checkedLength = Math.min(typed.length, correct.length); // changed let to const
     for (let i = 0; i < checkedLength; i++) {
       if (typed[i] === correct[i]) correctCount++;
     }
     // Only count up to the last non-space character in typed
-    let lastCharIdx = typed.trimEnd().length;
+    const lastCharIdx = typed.trimEnd().length; // changed let to const
     return lastCharIdx > 0 ? Math.round((correctCount / lastCharIdx) * 100) : 100;
   };
 
@@ -327,8 +304,8 @@ export default function Home() {
   const progressPercent = wpm && currentGoal ? Math.min((wpm / currentGoal) * 100, 100) : 0;
 
   const goalMet = wpm !== null && wpm >= currentGoal;
-  const wpmColorClass = goalMet ? 'text-green-600' : 'text-red-600';
-  const progressBarColor = goalMet ? 'bg-green-600' : 'bg-red-600';
+  // const wpmColorClass = goalMet ? 'text-green-600' : 'text-red-600';
+  // const progressBarColor = goalMet ? 'bg-green-600' : 'bg-red-600';
 
   const renderHighlightedTarget = () => {
     return (
