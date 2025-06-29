@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useErrorAudio } from "../hooks/useErrorAudio";
-
+import Image from 'next/image';
 const sentenceBank = {
   easy: [
     "Hi there.",
@@ -462,13 +462,16 @@ export default function Home() {
       </div>
 
       <h1 className="text-5xl font-extrabold mb-6 text-center tracking-wide select-none">
-        <span className="block text-black drop-shadow-lg animate-pulse">
-          TYPE
-        </span>
-        <span className="block text-4xl font-extrabold mt-[-0.5rem] ml-32 text-red-600 drop-shadow-lg animate-pulse tracking-wider">
-          DUELZ
-        </span>
-        
+
+<div className="flex justify-center items-center mt-4 animate-bounce">
+  <Image 
+    src="/favicon.ico" 
+    width={200} 
+    height={50} 
+    alt="TypeDuels Logo" 
+  />
+</div>
+
         <span className="block text-base font-normal text-gray-500 mt-2">{playerName && `(Player: ${playerName})`}</span>
       </h1>
 
