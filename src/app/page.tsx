@@ -468,6 +468,7 @@ export default function Home() {
         <span className="block text-4xl font-extrabold mt-[-0.5rem] ml-32 text-red-600 drop-shadow-lg animate-pulse tracking-wider">
           DUELZ
         </span>
+        
         <span className="block text-base font-normal text-gray-500 mt-2">{playerName && `(Player: ${playerName})`}</span>
       </h1>
 

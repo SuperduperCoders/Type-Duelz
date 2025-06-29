@@ -9,7 +9,7 @@ const characters = [
 		cost: { duelPoints: 10, skillPoints: 20 },
 		ownedKey: 'char_default_typer',
 		ability: 'Skipper',
-		image: '/file.svg', // Fixed: removed /public
+		image: '/computer.png', // Fixed: removed /public
 	},
 	{
 		id: 'pro',
@@ -17,7 +17,7 @@ const characters = [
 		cost: { duelPoints: 30, skillPoints: 50 },
 		ownedKey: 'char_pro',
 		ability: 'In Duel Mode, has a 50% chance to get a shorter sentence!',
-		image: '/globe.svg', // Fixed: removed /public
+		image: '/GoodTyper.png', // Fixed: removed /public
 	},
 	{
 		id: 'pro-wihich',
@@ -25,7 +25,7 @@ const characters = [
 		cost: { duelPoints: 60, skillPoints: 100 },
 		ownedKey: 'char_pro_wihich',
 		ability: `When pressing Enter, makes the whole screen red then skips three whole words (usable once per sentence).`,
-		image: '/next.svg',
+		image: '/Pro.png',
 	},
 	{
 		id: 'advanced-typer',
