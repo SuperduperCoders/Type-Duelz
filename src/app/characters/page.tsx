@@ -33,7 +33,7 @@ const characters = [
 		cost: { duelPoints: 100, skillPoints: 200 },
 		ownedKey: 'char_advanced_typer',
 		ability: `Sabatoge`,
-		image: '/vercel.svg', // Fixed: removed /public
+		image: '/Advanced.png', // Fixed: removed /public
 	},
 	{
 		id: 'master',
@@ -41,7 +41,15 @@ const characters = [
 		cost: { duelPoints: 200, skillPoints: 400 },
 		ownedKey: 'char_master',
 		ability: `Murder`,
-		image: '/window.svg', // Fixed: removed /public
+		image: '/Master.Png', // Fixed: removed /public
+	},
+		{
+		id: '????',
+		name: '?????',
+		cost: { duelPoints: 350, skillPoints: 350 },
+		ownedKey: 'char_master',
+		ability: `UNkwON`,
+		image: '/unkown.Png', // Fixed: removed /public
 	},
 ];
 
