@@ -73,8 +73,6 @@ export default function Home() {
 
   // Track equipped character and skip ability
   const [equippedCharacter, setEquippedCharacter] = useState<string | null>(null);
-  const [skipUsed, setSkipUsed] = useState(0); // now a counter
-  const maxSkips = equippedCharacter === 'default-typer' ? 1 : 0;
 
   // Blackout overlay state for ??? character
   const [showBlackout, setShowBlackout] = useState(false);
@@ -194,11 +192,6 @@ export default function Home() {
       setEquippedCharacter(localStorage.getItem('equippedCharacter'));
     }
   }, []);
-
-  // Reset skipUsed on new sentence
-  useEffect(() => {
-    setSkipUsed(0);
-  }, [target]);
 
   // Ensure dark mode is applied if set in settings
   useEffect(() => {
@@ -344,7 +337,7 @@ export default function Home() {
         localStorage.setItem('playerPassword', password);
         setShowAccountModal(false);
         setShowNameModal(false);
-      } catch (err) {
+      } catch {
         alert('Network error.');
       }
     }
@@ -682,7 +675,6 @@ export default function Home() {
             if (
               equippedCharacter === 'default-typer' &&
               e.key === 'Enter' &&
-              skipUsed < maxSkips &&
               !isFinished
             ) {
               // Only allow skip if at a space or the current character is correct
@@ -705,7 +697,6 @@ export default function Home() {
                 newInput += toAdd;
               }
               setInput(newInput);
-              setSkipUsed(skipUsed + 1);
               e.preventDefault();
             }
           }}

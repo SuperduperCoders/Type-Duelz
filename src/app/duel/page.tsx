@@ -58,8 +58,6 @@ export default function Duel() {
 	// Use error audio hook
 	const { errorAudioRef, playError } = useErrorAudio();
 
-	const [proWihichUsed, setProWihichUsed] = useState(false);
-	const [showRedOverlay, setShowRedOverlay] = useState(false);
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const [showBlackout, setShowBlackout] = useState(false);
 
@@ -548,9 +546,6 @@ export default function Duel() {
 						<div className="fixed inset-0 z-[101] bg-black transition-opacity duration-300 opacity-100 pointer-events-none" />
 					)}
 				</div>
-				{showRedOverlay && (
-					<div className="fixed inset-0 z-[100] bg-red-600 opacity-80 pointer-events-none animate-fadeIn animate-fadeOut"></div>
-				)}
 			</main>
 		)
 	);
