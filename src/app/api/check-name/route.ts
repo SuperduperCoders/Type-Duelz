@@ -2,8 +2,11 @@ import { NextResponse } from 'next/server';
 
 // In-memory store for demo. Replace with a database in production.
 const takenNames = new Set<string>();
-const nameChangeTimestamps = new Map<string, number>(); // name -> last change timestamp (ms)
+const nameChangeTimestamps = new Map<string, number>();
 const CHANGE_INTERVAL_MS = 4 * 24 * 60 * 60 * 1000; // 4 days in ms
+
+// In-memory user store for demo. Replace with a database in production.
+const users: { name: string; password: string }[] = [];
 
 async function POST(request: Request) {
   const { name, password, release, userId } = await request.json();
@@ -14,13 +17,11 @@ async function POST(request: Request) {
   const now = Date.now();
 
   if (release) {
-    // Release the name (e.g., on logout or name change)
     takenNames.delete(lower);
     nameChangeTimestamps.delete(userId || lower);
     return NextResponse.json({ success: true, released: true });
   }
 
-  // Enforce 4-day change interval per userId (or name if no userId)
   const key = userId || lower;
   const lastChange = nameChangeTimestamps.get(key);
   if (lastChange && now - lastChange < CHANGE_INTERVAL_MS) {
@@ -35,9 +36,8 @@ async function POST(request: Request) {
   takenNames.add(lower);
   nameChangeTimestamps.set(key, now);
 
-  // Store user and password for admin view (demo only)
   if (password && typeof password === 'string') {
-    // users.push({ name: lower, password });
+    users.push({ name: lower, password });
   }
 
   return NextResponse.json({ success: true });

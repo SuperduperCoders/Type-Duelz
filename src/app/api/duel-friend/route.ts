@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // In-memory store for demo (replace with DB or Redis in production)
 const duelRequests: Record<string, { from: string, roomId: string, accepted: boolean }> = {};
 
-export async function POST(req: NextRequest) {
+async function POST(req: NextRequest) {
   const { friendName } = await req.json();
   const myName = req.cookies.get('playerName')?.value || req.headers.get('x-forwarded-for') || 'anonymous';
 
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({ success: true, message: 'Duel request sent.' });
 }
 
-export async function GET(req: NextRequest) {
+async function GET(req: NextRequest) {
   // Get current player
   const myName = req.cookies.get('playerName')?.value || req.headers.get('x-forwarded-for') || 'anonymous';
   const duel = duelRequests[myName];
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function PUT(req: NextRequest) {
+async function PUT(req: NextRequest) {
   // Accept or decline a duel
   const { accept } = await req.json();
   const myName = req.cookies.get('playerName')?.value || req.headers.get('x-forwarded-for') || 'anonymous';
@@ -48,3 +48,5 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: true, declined: true });
   }
 }
+
+export default { POST, GET, PUT };
