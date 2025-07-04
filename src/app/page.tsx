@@ -453,7 +453,7 @@ export default function Home() {
       } else {
         setDuelError(data.error || "Could not start duel.");
       }
-    } catch (err) {
+    } catch {
       setDuelError("Network error.");
     }
     setDuelLoading(false);
@@ -461,7 +461,6 @@ export default function Home() {
 
   // Poll for incoming duel requests
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout;
     let isMounted = true;
     async function pollDuelRequests() {
       try {
@@ -474,7 +473,7 @@ export default function Home() {
         }
       } catch {}
     }
-    pollInterval = setInterval(pollDuelRequests, 2000);
+    const pollInterval = setInterval(pollDuelRequests, 2000);
     pollDuelRequests();
     return () => {
       isMounted = false;
