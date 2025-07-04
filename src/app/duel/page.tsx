@@ -40,8 +40,6 @@ export default function Duel() {
 
 	// Track equipped character and skip ability
 	const [equippedCharacter, setEquippedCharacter] = useState<string | null>(null);
-	const [skipUsed, setSkipUsed] = useState(0); // now a counter
-	const maxSkips = equippedCharacter === 'good typer' ? 3 : equippedCharacter === 'default-typer' ? 1 : 0;
 
 	// Sabotage ability state
 	const [sabotageCooldown, setSabotageCooldown] = useState(0);
@@ -145,11 +143,6 @@ export default function Duel() {
 		if (!hasMounted) return;
 		setEquippedCharacter(localStorage.getItem('equippedCharacter'));
 	}, [hasMounted]);
-
-	// Reset skipUsed on new duel
-	useEffect(() => {
-		setSkipUsed(0);
-	}, [target]);
 
 	// On mount, load sabotage cooldown
 	useEffect(() => {

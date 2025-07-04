@@ -94,7 +94,7 @@ export default function CharactersPage() {
 				setSabotageCooldown(cooldown);
 			}, 1000);
 		}
-		return () => interval && clearInterval(interval);
+		return () => interval && clearInterval(interval!);
 	}, [mounted, equipped, owned['char_advanced_typer']]);
 
 	// Poll killCooldown if equipped and owned
@@ -111,7 +111,7 @@ export default function CharactersPage() {
 				setKillCooldown(cooldown);
 			}, 1000);
 		}
-		return () => interval && clearInterval(interval);
+		return () => interval && clearInterval(interval!);
 	}, [mounted, equipped, owned['char_master']]);
 
 	const handleBuyWithDuel = (char: typeof characters[0]) => {

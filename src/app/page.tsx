@@ -68,8 +68,6 @@ export default function Home() {
   const [playerName, setPlayerName] = useState("");
   const [password, setPassword] = useState("");
   const [showAccountModal, setShowAccountModal] = useState(false);
-  // Add new state for name modal
-  const [showNameModal, setShowNameModal] = useState(false);
 
   // Track equipped character and skip ability
   const [equippedCharacter, setEquippedCharacter] = useState<string | null>(null);
@@ -173,7 +171,6 @@ export default function Home() {
     const savedPass = localStorage.getItem("playerPassword");
     if (!savedName || !savedPass) {
       setShowAccountModal(true);
-      setShowNameModal(true);
     } else {
       setPlayerName(savedName);
       setPassword(savedPass);
@@ -336,7 +333,6 @@ export default function Home() {
         localStorage.setItem('playerName', playerName);
         localStorage.setItem('playerPassword', password);
         setShowAccountModal(false);
-        setShowNameModal(false);
       } catch {
         alert('Network error.');
       }
@@ -760,7 +756,7 @@ export default function Home() {
             </button>
             <h2 className="text-2xl font-bold mb-2 text-center">{playerName ? "Edit Account" : "Create Account"}</h2>
             {/* Use NamePicker for name selection */}
-            <NamePicker onNameSet={name => { setPlayerName(name); setShowNameModal(false); }} />
+            <NamePicker onNameSet={name => { setPlayerName(name); }} />
             <input
               type="password"
               placeholder="Password"
