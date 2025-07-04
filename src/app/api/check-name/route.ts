@@ -5,9 +5,6 @@ const takenNames = new Set<string>();
 const nameChangeTimestamps = new Map<string, number>(); // name -> last change timestamp (ms)
 const CHANGE_INTERVAL_MS = 4 * 24 * 60 * 60 * 1000; // 4 days in ms
 
-// In-memory user store for demo. Replace with a database in production.
-export const users: { name: string; password: string }[] = [];
-
 async function POST(request: Request) {
   const { name, password, release, userId } = await request.json();
   if (!name || typeof name !== 'string') {
@@ -40,7 +37,7 @@ async function POST(request: Request) {
 
   // Store user and password for admin view (demo only)
   if (password && typeof password === 'string') {
-    users.push({ name: lower, password });
+    // users.push({ name: lower, password });
   }
 
   return NextResponse.json({ success: true });
