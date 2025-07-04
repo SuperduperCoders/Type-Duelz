@@ -36,6 +36,7 @@ export default function Duel() {
 	const [playerName, setPlayerName] = useState("");
 	const [password, setPassword] = useState("");
 	const [showAccountModal, setShowAccountModal] = useState(false);
+	const [nameError, setNameError] = useState('');
 
 	// Track equipped character and skip ability
 	const [equippedCharacter, setEquippedCharacter] = useState<string | null>(null);
@@ -59,6 +60,8 @@ export default function Duel() {
 
 	const [proWihichUsed, setProWihichUsed] = useState(false);
 	const [showRedOverlay, setShowRedOverlay] = useState(false);
+	const inputRef = useRef<HTMLInputElement | null>(null);
+	const [showBlackout, setShowBlackout] = useState(false);
 
 	useEffect(() => {
 		setHasMounted(true);
@@ -281,6 +284,16 @@ export default function Duel() {
 
 	const handleAccountSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
+		setNameError('');
+		// Validate playerName: no spaces, no uppercase
+		if (/\s/.test(playerName)) {
+			setNameError('Name cannot contain spaces.');
+			return;
+		}
+		if (/[A-Z]/.test(playerName)) {
+			setNameError('Name cannot contain uppercase letters.');
+			return;
+		}
 		if (playerName && password) {
 			localStorage.setItem("playerName", playerName);
 			localStorage.setItem("playerPassword", password);
@@ -412,7 +425,7 @@ export default function Duel() {
 								type="text"
 								placeholder="Player Name"
 								value={playerName}
-								onChange={e => setPlayerName(e.target.value)}
+								onChange={e => { setPlayerName(e.target.value); setNameError(''); }}
 								className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
 								required
 							/>
@@ -424,6 +437,7 @@ export default function Duel() {
 								className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
 								required
 							/>
+							{nameError && <div className="text-red-600 text-sm font-semibold">{nameError}</div>}
 							<button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition">Save</button>
 						</form>
 					</div>
@@ -469,47 +483,59 @@ export default function Duel() {
 						{renderHighlightedTarget()}
 					</div>
 					<input
+						ref={inputRef}
 						type="text"
 						value={input}
 						onChange={handleInputChange}
 						onKeyDown={e => {
+							// ??? character ability: blackout and skip to last word
 							if (
-								(equippedCharacter === 'default-typer' || equippedCharacter === 'good typer') &&
+								equippedCharacter === '????' &&
 								e.key === 'Enter' &&
-								skipUsed < maxSkips &&
 								!userFinished &&
 								!aiFinished
 							) {
-								const nextSpace = target.indexOf(' ', input.length);
-								if (nextSpace !== -1) {
-									setInput(target.slice(0, nextSpace + 1));
+								setShowBlackout(true);
+								// Find the start index of the last word
+								const trimmed = target.trimEnd();
+								const lastSpace = trimmed.lastIndexOf(' ');
+								let newInput = '';
+								if (lastSpace !== -1) {
+									newInput = trimmed.slice(0, lastSpace + 1); // up to and including the last space
+								}
+								setInput(newInput);
+								setTimeout(() => {
+									setShowBlackout(false);
+									// Focus input and move cursor to end after blackout
+									if (inputRef.current) {
+										inputRef.current.focus();
+										inputRef.current.setSelectionRange(newInput.length, newInput.length);
+									}
+								}, 1200); // blackout for 1.2s
+								e.preventDefault();
+								return;
+							}
+							// Enter key: finalize input (for all characters)
+							if (e.key === 'Enter' && !userFinished && !aiFinished) {
+								if (input.trim() === "") {
+									e.preventDefault();
+									return;
+								}
+								setUserFinished(true);
+								const endTime = Date.now();
+								const durationInMinutes = (endTime - (startTime ?? endTime)) / 60000;
+								const wordCount = target.trim().split(/\s+/).length;
+								const calculatedWpm = Math.round(wordCount / durationInMinutes);
+								setWpmHistory((prev) => [...prev, calculatedWpm]);
+								if (!aiFinished) {
+									setDuelPoints((p) => p + 5);
+									setResult("\ud83c\udfc6 You win! +5 Duel Points");
 								} else {
-									setInput(target);
+									setResult(`\u274c ${opponentName} wins! Try again.`);
 								}
-								setSkipUsed(skipUsed + 1);
 								e.preventDefault();
 							}
-							// Pro Typer ability: skip 3 words and flash red
-							if (
-								equippedCharacter === 'pro-wihich' &&
-								e.key === 'Enter' &&
-								!proWihichUsed &&
-								!userFinished &&
-								!aiFinished
-							) {
-								setShowRedOverlay(true);
-								setTimeout(() => setShowRedOverlay(false), 500);
-								// Skip 3 words
-								let wordCount = 0;
-								let idx = input.length;
-								while (wordCount < 3 && idx < target.length) {
-									if (target[idx] === ' ') wordCount++;
-									idx++;
-								}
-								setInput(target.slice(0, idx));
-								setProWihichUsed(true);
-								e.preventDefault();
-							}
+							// Default Enter behavior: allow form submission or other handlers
 						}}
 						className="w-full p-4 text-2xl border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-white"
 						placeholder="Start typing..."
@@ -518,6 +544,9 @@ export default function Duel() {
 						autoCorrect="off"
 						disabled={userFinished || aiFinished}
 					/>
+					{showBlackout && (
+						<div className="fixed inset-0 z-[101] bg-black transition-opacity duration-300 opacity-100 pointer-events-none" />
+					)}
 				</div>
 				{showRedOverlay && (
 					<div className="fixed inset-0 z-[100] bg-red-600 opacity-80 pointer-events-none animate-fadeIn animate-fadeOut"></div>

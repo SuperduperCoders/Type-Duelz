@@ -3,6 +3,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useErrorAudio } from "../hooks/useErrorAudio";
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
+
+const NamePicker = dynamic(() => import('./components/NamePicker'), { ssr: false });
+
 const sentenceBank = {
   easy: [
     "Hi there.",
@@ -64,14 +68,16 @@ export default function Home() {
   const [playerName, setPlayerName] = useState("");
   const [password, setPassword] = useState("");
   const [showAccountModal, setShowAccountModal] = useState(false);
+  // Add new state for name modal
+  const [showNameModal, setShowNameModal] = useState(false);
 
   // Track equipped character and skip ability
   const [equippedCharacter, setEquippedCharacter] = useState<string | null>(null);
   const [skipUsed, setSkipUsed] = useState(0); // now a counter
   const maxSkips = equippedCharacter === 'default-typer' ? 1 : 0;
 
-  // Error state for name taken
-  const [nameError, setNameError] = useState('');
+  // Blackout overlay state for ??? character
+  const [showBlackout, setShowBlackout] = useState(false);
 
   // Audio ref for typing sound
   const typingAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -91,6 +97,28 @@ export default function Home() {
 
   // Loading state
   const [loading, setLoading] = useState(true);
+  // Track when loading started
+  const loadingStartRef = useRef<number | null>(null);
+
+  // Theme state for dark/light mode switch
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('theme') || 'dark';
+    }
+    return 'dark';
+  });
+
+  // Update theme on change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('theme', theme);
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [theme]);
 
   // --- THEME PERSISTENCE ON LOAD ---
   // useEffect(() => {
@@ -109,7 +137,24 @@ export default function Home() {
 
   useEffect(() => {
     // When target sentence is set, we consider loading done
-    if (target) setLoading(false);
+    if (target) {
+      // If loading just started, record the time
+      if (!loadingStartRef.current) {
+        loadingStartRef.current = Date.now();
+      }
+      // Calculate how long loading has lasted
+      const elapsed = Date.now() - (loadingStartRef.current || 0);
+      const minLoading = 3000; // 3 seconds
+      if (elapsed < minLoading) {
+        setTimeout(() => {
+          setLoading(false);
+          loadingStartRef.current = null;
+        }, minLoading - elapsed);
+      } else {
+        setLoading(false);
+        loadingStartRef.current = null;
+      }
+    }
   }, [target]);
 
   useEffect(() => {
@@ -130,6 +175,7 @@ export default function Home() {
     const savedPass = localStorage.getItem("playerPassword");
     if (!savedName || !savedPass) {
       setShowAccountModal(true);
+      setShowNameModal(true);
     } else {
       setPlayerName(savedName);
       setPassword(savedPass);
@@ -153,6 +199,18 @@ export default function Home() {
   useEffect(() => {
     setSkipUsed(0);
   }, [target]);
+
+  // Ensure dark mode is applied if set in settings
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const theme = localStorage.getItem('theme');
+      if (theme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, []);
 
   // Helper to determine if we're in duel mode
   const isDuelMode = typeof window !== 'undefined' && window.location.pathname === '/duel';
@@ -257,34 +315,37 @@ export default function Home() {
     }
   };
 
-  const handleAccountSubmit = (e: React.FormEvent) => {
+  // Replace handleAccountSubmit with API-based name check
+  const handleAccountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setNameError('');
+    // Validate playerName: no spaces, no uppercase
+    if (/\s/.test(playerName)) {
+      alert('Name cannot contain spaces.');
+      return;
+    }
+    if (/[A-Z]/.test(playerName)) {
+      alert('Name cannot contain uppercase letters.');
+      return;
+    }
     if (playerName && password) {
-      // Unique name logic
-      let registeredNames: string[] = [];
-      if (typeof window !== 'undefined') {
-        const namesRaw = localStorage.getItem('registeredNames');
-        if (namesRaw) registeredNames = JSON.parse(namesRaw);
-        // If editing, allow keeping your own name
-        const currentName = localStorage.getItem('playerName');
-        const isNameTaken = registeredNames.includes(playerName) && playerName !== currentName;
-        if (isNameTaken) {
-          setNameError(`The name "${playerName}" is already taken.`);
+      // Check with backend for unique name
+      try {
+        const res = await fetch('/api/check-name', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: playerName }),
+        });
+        const data = await res.json();
+        if (!data.success) {
+          alert(data.error || 'Name is already taken.');
           return;
         }
-        // Remove old name if changed
-        if (currentName && currentName !== playerName) {
-          registeredNames = registeredNames.filter(n => n !== currentName);
-        }
-        // Add new name if not present
-        if (!registeredNames.includes(playerName)) {
-          registeredNames.push(playerName);
-        }
-        localStorage.setItem('registeredNames', JSON.stringify(registeredNames));
         localStorage.setItem('playerName', playerName);
         localStorage.setItem('playerPassword', password);
         setShowAccountModal(false);
+        setShowNameModal(false);
+      } catch (err) {
+        alert('Network error.');
       }
     }
   };
@@ -375,9 +436,86 @@ export default function Home() {
     };
   }, []);
 
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  // Add state for Duel a Friend modal and input
+  const [showDuelFriendModal, setShowDuelFriendModal] = useState(false);
+  const [friendName, setFriendName] = useState("");
+  const [duelError, setDuelError] = useState("");
+  const [duelLoading, setDuelLoading] = useState(false);
+
+  // State for incoming duel request
+  const [incomingDuelRequest, setIncomingDuelRequest] = useState<null | { from: string, roomId: string, accepted: boolean }>(null);
+
+  // Handler for Duel a Friend
+  const handleDuelFriend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDuelError("");
+    setDuelLoading(true);
+    try {
+      const res = await fetch("/api/duel-friend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ friendName }),
+      });
+      const data = await res.json();
+      if (data.success && data.roomId) {
+        window.location.href = `/duel?room=${data.roomId}`;
+      } else {
+        setDuelError(data.error || "Could not start duel.");
+      }
+    } catch (err) {
+      setDuelError("Network error.");
+    }
+    setDuelLoading(false);
+  };
+
+  // Poll for incoming duel requests
+  useEffect(() => {
+    let pollInterval: NodeJS.Timeout;
+    let isMounted = true;
+    async function pollDuelRequests() {
+      try {
+        const res = await fetch('/api/duel-friend');
+        const data = await res.json();
+        if (isMounted && data.request && !data.request.accepted) {
+          setIncomingDuelRequest(data.request);
+        } else if (isMounted) {
+          setIncomingDuelRequest(null);
+        }
+      } catch {}
+    }
+    pollInterval = setInterval(pollDuelRequests, 2000);
+    pollDuelRequests();
+    return () => {
+      isMounted = false;
+      clearInterval(pollInterval);
+    };
+  }, []);
+
+  // Accept/decline duel request
+  const handleDuelResponse = async (accept: boolean) => {
+    if (!incomingDuelRequest) return;
+    try {
+      const res = await fetch('/api/duel-friend', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accept }),
+      });
+      const data = await res.json();
+      if (accept && data.success && data.roomId) {
+        window.location.href = `/duel?room=${data.roomId}`;
+      } else {
+        setIncomingDuelRequest(null);
+      }
+    } catch {
+      setIncomingDuelRequest(null);
+    }
+  };
+
   // Main UI when loaded
   return (
-    <main className="relative min-h-screen flex flex-col items-stretch bg-gradient-to-br from-white to-slate-100 p-0">
+    <main className={`relative min-h-screen flex flex-col items-stretch p-0 ${theme === 'dark' ? 'bg-black' : 'bg-gradient-to-br from-white to-slate-100'}`}>
       {/* Click and typing audio */}
       <audio ref={typingAudioRef} src="/typing.mp3" preload="auto" />
       <audio ref={errorAudioRef} src="/error.mp3" preload="auto" />
@@ -386,12 +524,33 @@ export default function Home() {
       {/* Loading overlay */}
       {loading && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
-          <div className="text-white text-3xl font-bold animate-pulse">Loading...</div>
+          <div className="flex flex-col items-center">
+            <Image
+              src="/favicon.ico"
+              width={120}
+              height={120}
+              alt="TypeDuels Logo"
+              className="animate-spin-slow mb-4"
+            />
+            <div className="text-white text-3xl font-bold animate-pulse">Loading...</div>
+          </div>
         </div>
       )}
 
       {/* Top navigation buttons - stick to top */}
-      <div className="fixed top-0 left-0 w-full flex flex-row justify-end gap-2 p-4 bg-white/80 z-50 shadow-md">
+      <div className="fixed top-0 left-0 w-full flex flex-row justify-end gap-2 p-4 bg-white/80 dark:bg-gray-900/80 z-50 shadow-md">
+        {/* Fancy Theme Switch */}
+        <button
+          className={`relative w-16 h-9 flex items-center rounded-full border-2 transition-colors duration-300 focus:outline-none ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-400'}`}
+          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          aria-label="Toggle dark/light mode"
+        >
+          <span className={`absolute left-2 text-xl transition-opacity duration-300 ${theme === 'dark' ? 'opacity-0' : 'opacity-100'}`}>☀️</span>
+          <span className={`absolute right-2 text-xl transition-opacity duration-300 ${theme === 'dark' ? 'opacity-100' : 'opacity-0'}`}>🌙</span>
+          <span
+            className={`absolute top-1/2 transform -translate-y-1/2 left-1 transition-all duration-300 w-7 h-7 rounded-full shadow-md ${theme === 'dark' ? 'bg-gray-900 translate-x-7' : 'bg-white translate-x-0'}`}
+          />
+        </button>
         <button
           className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md font-semibold border border-gray-400 hover:bg-blue-500 hover:text-white transition"
           onClick={() => { playClick(); window.location.href = '/duel'; }}
@@ -415,6 +574,12 @@ export default function Home() {
           onClick={() => { playClick(); window.location.href = '/settings'; }}
         >
           Settings
+        </button>
+        <button
+          className="bg-pink-500 text-white px-4 py-2 rounded-md font-semibold border border-pink-700 hover:bg-pink-600 transition"
+          onClick={() => { playClick(); setShowDuelFriendModal(true); }}
+        >
+          Duel a Friend
         </button>
       </div>
       <div className="h-20" /> {/* Spacer for fixed nav */}
@@ -482,10 +647,38 @@ export default function Home() {
         </div>
 
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={handleInputChange}
           onKeyDown={e => {
+            // ??? character ability: blackout and skip to last word
+            if (
+              equippedCharacter === '???' &&
+              e.key === 'Enter' &&
+              !isFinished
+            ) {
+              setShowBlackout(true);
+              // Find the start index of the last word
+              const trimmed = target.trimEnd();
+              const lastSpace = trimmed.lastIndexOf(' ');
+              let newInput = '';
+              if (lastSpace !== -1) {
+                newInput = trimmed.slice(0, lastSpace + 1); // up to and including the last space
+              }
+              setInput(newInput);
+              setTimeout(() => {
+                setShowBlackout(false);
+                // Focus input and move cursor to end after blackout
+                if (inputRef.current) {
+                  inputRef.current.focus();
+                  inputRef.current.setSelectionRange(newInput.length, newInput.length);
+                }
+              }, 1200); // blackout for 1.2s
+              e.preventDefault();
+              return;
+            }
+            // DEFAULT-TYPER ABILITY: Skip to next space up to maxSkips
             if (
               equippedCharacter === 'default-typer' &&
               e.key === 'Enter' &&
@@ -525,6 +718,11 @@ export default function Home() {
           disabled={isFinished}
         />
 
+        {/* Blackout overlay for ??? character */}
+        {showBlackout && (
+          <div className="fixed inset-0 z-[9999] bg-black transition-opacity duration-300 opacity-100 pointer-events-none" />
+        )}
+
         {feedback && (
           <p className="mt-3 text-lg font-semibold text-green-600 animate-bounce">{feedback}</p>
         )}
@@ -560,16 +758,18 @@ export default function Home() {
       {/* Account Modal */}
       {showAccountModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <form onSubmit={handleAccountSubmit} className="bg-white p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px]">
+          <form onSubmit={handleAccountSubmit} className="bg-white p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px] relative">
+            <button
+              type="button"
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-600 text-2xl font-bold focus:outline-none"
+              aria-label="Close"
+              onClick={() => setShowAccountModal(false)}
+            >
+              &times;
+            </button>
             <h2 className="text-2xl font-bold mb-2 text-center">{playerName ? "Edit Account" : "Create Account"}</h2>
-            <input
-              type="text"
-              placeholder="Player Name"
-              value={playerName}
-              onChange={e => { setPlayerName(e.target.value); setNameError(''); }}
-              className="p-3 border rounded-md text-black"
-              required
-            />
+            {/* Use NamePicker for name selection */}
+            <NamePicker onNameSet={name => { setPlayerName(name); setShowNameModal(false); }} />
             <input
               type="password"
               placeholder="Password"
@@ -578,9 +778,59 @@ export default function Home() {
               className="p-3 border rounded-md text-black"
               required
             />
-            {nameError && <div className="text-red-600 text-sm font-semibold">{nameError}</div>}
             <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition" onClick={playClick}>Save</button>
           </form>
+        </div>
+      )}
+
+      {/* Duel a Friend Modal */}
+      {showDuelFriendModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <form onSubmit={handleDuelFriend} className="bg-white p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px] relative">
+            <button
+              type="button"
+              className="absolute top-2 right-2 text-gray-400 hover:text-red-600 text-2xl font-bold focus:outline-none"
+              aria-label="Close"
+              onClick={() => setShowDuelFriendModal(false)}
+            >
+              &times;
+            </button>
+            <h2 className="text-2xl font-bold mb-2 text-center">Duel a Friend</h2>
+            <input
+              type="text"
+              placeholder="Friend's in-game name"
+              value={friendName}
+              onChange={e => setFriendName(e.target.value)}
+              className="p-3 border rounded-md text-black"
+              required
+            />
+            <button type="submit" className="bg-pink-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-pink-600 transition" disabled={duelLoading}>{duelLoading ? 'Checking...' : 'Send Duel Request'}</button>
+            {duelError && <p className="text-red-600 text-center">{duelError}</p>}
+          </form>
+        </div>
+      )}
+
+      {/* Incoming Duel Request Modal */}
+      {incomingDuelRequest && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-white p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px] relative">
+            <h2 className="text-2xl font-bold mb-2 text-center">Duel Request</h2>
+            <p className="text-center text-lg">{incomingDuelRequest.from} wants to duel you!</p>
+            <div className="flex gap-4 justify-center mt-4">
+              <button
+                className="bg-green-500 text-white px-4 py-2 rounded-md font-semibold hover:bg-green-600 transition"
+                onClick={() => handleDuelResponse(true)}
+              >
+                Accept
+              </button>
+              <button
+                className="bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-semibold hover:bg-gray-400 transition"
+                onClick={() => handleDuelResponse(false)}
+              >
+                Decline
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -592,6 +842,16 @@ export default function Home() {
           {wpmHistory.length > 0 ? `${Math.round(accuracy)}%` : 'N/A'}
         </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes spin-slow {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        .animate-spin-slow {
+          animation: spin-slow 2s linear infinite;
+        }
+      `}</style>
     </main>
   );
 }

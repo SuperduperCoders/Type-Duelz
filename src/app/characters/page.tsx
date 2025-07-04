@@ -43,7 +43,7 @@ const characters = [
 		ability: `Murder`,
 		image: '/Master.Png', // Fixed: removed /public
 	},
-		{
+	{
 		id: '????',
 		name: '?????',
 		cost: { duelPoints: 350, skillPoints: 350 },
@@ -124,6 +124,9 @@ export default function CharactersPage() {
 			setOwned(prev => ({ ...prev, [char.ownedKey]: true }));
 			// Save all relevant data
 			localStorage.setItem('ownedCharacters', JSON.stringify({ ...owned, [char.ownedKey]: true }));
+			// Auto-equip after buying
+			localStorage.setItem('equippedCharacter', char.id);
+			setEquipped(char.id);
 		} else {
 			alert('Not enough Duel Points!');
 		}
@@ -139,6 +142,9 @@ export default function CharactersPage() {
 			setOwned(prev => ({ ...prev, [char.ownedKey]: true }));
 			// Save all relevant data
 			localStorage.setItem('ownedCharacters', JSON.stringify({ ...owned, [char.ownedKey]: true }));
+			// Auto-equip after buying
+			localStorage.setItem('equippedCharacter', char.id);
+			setEquipped(char.id);
 		} else {
 			alert('Not enough Skill Points!');
 		}
