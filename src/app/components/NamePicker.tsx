@@ -21,7 +21,7 @@ export default function NamePicker({ onNameSet }: { onNameSet: (name: string) =>
       } else {
         setError(data.error || 'Name is taken.');
       }
-    } catch (err) {
+    } catch {
       setError('Network error.');
     } finally {
       setLoading(false);
