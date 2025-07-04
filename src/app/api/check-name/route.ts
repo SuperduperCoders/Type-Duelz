@@ -8,7 +8,7 @@ const CHANGE_INTERVAL_MS = 4 * 24 * 60 * 60 * 1000; // 4 days in ms
 // In-memory user store for demo. Replace with a database in production.
 const users: { name: string; password: string }[] = [];
 
-async function POST(request: Request) {
+export async function POST(request: Request) {
   const { name, password, release, userId } = await request.json();
   if (!name || typeof name !== 'string') {
     return NextResponse.json({ success: false, error: 'Invalid name.' }, { status: 400 });
@@ -42,5 +42,3 @@ async function POST(request: Request) {
 
   return NextResponse.json({ success: true });
 }
-
-export default { POST };
