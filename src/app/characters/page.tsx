@@ -8,7 +8,7 @@ const characters = [
 		name: 'Default Typer',
 		cost: { duelPoints: 10, skillPoints: 20 },
 		ownedKey: 'char_default_typer',
-		ability: 'Skipper',
+		ability: 'Can skip one word per sentence.',
 		image: '/computer.png', // Fixed: removed /public
 	},
 	{
@@ -48,8 +48,8 @@ const characters = [
 		name: '?????',
 		cost: { duelPoints: 350, skillPoints: 350 },
 		ownedKey: 'char_master',
-		ability: `UNkwON`,
-		image: '/unkown.Png', // Fixed: removed /public
+		ability: `Unkown`,
+		image: '/Unkown.Png', // Fixed: removed /public
 	},
 ];
 
