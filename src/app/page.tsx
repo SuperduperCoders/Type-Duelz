@@ -1,9 +1,12 @@
+// Solo mode page moved to /dashboard
+
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
 import { useErrorAudio } from "../hooks/useErrorAudio";
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import Confetti from './components/Confetti';
 
 const NamePicker = dynamic(() => import('./components/NamePicker'), { ssr: false });
 
@@ -62,14 +65,14 @@ export default function Home() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [wpm, setWpm] = useState<number | null>(null);
   const [accuracy, setAccuracy] = useState<number>(100);
+  const [mistakeCount, setMistakeCount] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
 
-  // User account state
+  // User account state (popup removed)
   const [playerName, setPlayerName] = useState("");
   const [password, setPassword] = useState("");
-  const [showAccountModal, setShowAccountModal] = useState(false);
 
-  // Track equipped character and skip ability
+  // Track equipped character
   const [equippedCharacter, setEquippedCharacter] = useState<string | null>(null);
 
   // Blackout overlay state for ??? character
@@ -167,13 +170,15 @@ export default function Home() {
 
   // On mount, check for saved player info and theme
   useEffect(() => {
-    const savedName = localStorage.getItem("playerName");
-    const savedPass = localStorage.getItem("playerPassword");
-    if (!savedName || !savedPass) {
-      setShowAccountModal(true);
+    const accountCreated = localStorage.getItem("accountCreated");
+    if (accountCreated === "true") {
+      const savedName = localStorage.getItem("playerName");
+      const savedPass = localStorage.getItem("playerPassword");
+      setPlayerName(savedName || "");
+      setPassword(savedPass || "");
+      // setShowAccountModal(false); // removed
     } else {
-      setPlayerName(savedName);
-      setPassword(savedPass);
+    // setShowAccountModal(true); // removed
     }
     // Load skill and wpmHistory if not already loaded (for SSR safety)
     if (typeof window !== 'undefined') {
@@ -233,14 +238,10 @@ export default function Home() {
 
   // Fix accuracy calculation to ignore trailing spaces
   const calculateAccuracy = (typed: string, correct: string) => {
-    let correctCount = 0;
-    const checkedLength = Math.min(typed.length, correct.length); // changed let to const
-    for (let i = 0; i < checkedLength; i++) {
-      if (typed[i] === correct[i]) correctCount++;
-    }
-    // Only count up to the last non-space character in typed
-    const lastCharIdx = typed.trimEnd().length; // changed let to const
-    return lastCharIdx > 0 ? Math.round((correctCount / lastCharIdx) * 100) : 100;
+    // Accuracy is now based on mistakes made
+    const totalTyped = typed.trimEnd().length;
+    const mistakes = mistakeCount;
+    return totalTyped > 0 ? Math.max(0, Math.round(((totalTyped - mistakes) / totalTyped) * 100)) : 100;
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -259,12 +260,16 @@ export default function Home() {
       for (let i = 0; i < newVal.length - 1; i++) {
         if (newVal[i] !== target[i]) {
           playError();
+          setMistakeCount(prev => prev + 1);
+          setAccuracy(calculateAccuracy(newVal, target));
           return;
         }
       }
       // Block if the new letter is not correct
       if (newVal[newVal.length - 1] !== target[newVal.length - 1]) {
         playError();
+        setMistakeCount(prev => prev + 1);
+        setAccuracy(calculateAccuracy(newVal, target));
         return;
       }
     }
@@ -280,8 +285,8 @@ export default function Home() {
       });
     }
 
-    const liveAccuracy = calculateAccuracy(newVal, target);
-    setAccuracy(liveAccuracy);
+    // Only update accuracy if not blocked above
+    setAccuracy(calculateAccuracy(newVal, target));
 
     if (newVal.length === target.length) {
       setIsFinished(true);
@@ -296,52 +301,19 @@ export default function Home() {
       setWpmHistory(prev => [...prev, calculatedWpm]);
 
       // In solo mode, just show accuracy feedback, not 'You win!'
-      setFeedback(`✅ Submitted! Accuracy: ${liveAccuracy}%`);
+      setFeedback(`✅ Submitted! Accuracy: ${calculateAccuracy(newVal, target)}%`);
 
       setTimeout(() => {
         setFeedback("");
         window.location.href = "/";
       }, 3000);
+      setMistakeCount(0); // reset for next round
     }
   };
 
-  // Replace handleAccountSubmit with API-based name check
-  const handleAccountSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Validate playerName: no spaces, no uppercase
-    if (/\s/.test(playerName)) {
-      alert('Name cannot contain spaces.');
-      return;
-    }
-    if (/[A-Z]/.test(playerName)) {
-      alert('Name cannot contain uppercase letters.');
-      return;
-    }
-    if (playerName && password) {
-      // Check with backend for unique name
-      try {
-        const res = await fetch('/api/check-name', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: playerName }),
-        });
-        const data = await res.json();
-        if (!data.success) {
-          alert(data.error || 'Name is already taken.');
-          return;
-        }
-        localStorage.setItem('playerName', playerName);
-        localStorage.setItem('playerPassword', password);
-        setShowAccountModal(false);
-      } catch {
-        alert('Network error.');
-      }
-    }
-  };
+  // Account creation popup removed, so handleAccountSubmit is not needed
 
-  const handleEditAccount = () => {
-    setShowAccountModal(true);
-  };
+  // Account creation popup removed, so handleEditAccount is not needed
 
   // const topWpm = wpmHistory.length > 0 ? Math.max(...wpmHistory) : 0;
   // const averageWpm =
@@ -351,42 +323,90 @@ export default function Home() {
 
   const currentGoal = wpmGoals[difficulty];
 
-  const progressPercent = wpm && currentGoal ? Math.min((wpm / currentGoal) * 100, 100) : 0;
+  // Progress bar: show percent of words completed
+  const wordsTyped = input.trim().length > 0 ? input.trim().split(/\s+/).length : 0;
+  const totalWords = target.trim().length > 0 ? target.trim().split(/\s+/).length : 0;
+  const wordProgressPercent = totalWords > 0 ? Math.min((wordsTyped / totalWords) * 100, 100) : 0;
 
   const goalMet = wpm !== null && wpm >= currentGoal;
   // const wpmColorClass = goalMet ? 'text-green-600' : 'text-red-600';
   // const progressBarColor = goalMet ? 'bg-green-600' : 'bg-red-600';
 
+  // Track confetti triggers for each word index
+  const [confettiWords, setConfettiWords] = useState<{ [wordIdx: number]: boolean }>({});
+
+  // When input changes, check if a new word was completed and trigger confetti if Default Typer is equipped
+  useEffect(() => {
+    if (equippedCharacter !== 'default-typer') return;
+    if (!input || !target) return;
+    const inputWords = input.trim().split(/\s+/);
+    const targetWords = target.trim().split(/\s+/);
+    // Only trigger on word completion (when last char is space or input matches target)
+    if (input[input.length - 1] === ' ' || input.trim() === target.trim()) {
+      const wordIdx = inputWords.length - 1;
+      if (
+        wordIdx >= 0 &&
+        wordIdx < targetWords.length &&
+        !confettiWords[wordIdx]
+      ) {
+        if (Math.random() < 0.5) {
+          setConfettiWords(prev => ({ ...prev, [wordIdx]: true }));
+        }
+      }
+    }
+  }, [input, equippedCharacter, target]);
+
+  // Reset confetti on new sentence
+  useEffect(() => {
+    setConfettiWords({});
+  }, [target]);
+
   const renderHighlightedTarget = () => {
+    // Split target into words and spaces for word-level confetti
+    const words = target.split(/(\s+)/);
+    let charIdx = 0;
     return (
-      <p className="font-mono text-lg flex flex-wrap">
-        {target.split('').map((char, idx) => {
-          let className = 'px-0.5';
-          const currentChar = input[idx];
-
-          if (char === ' ') {
-            char = '␣';
-            className += ' bg-gray-300 rounded';
+      <span className="font-mono text-lg flex flex-wrap items-end relative">
+        {words.map((word, wIdx) => {
+          if (/^\s+$/.test(word)) {
+            charIdx += word.length;
+            return <span key={wIdx}>{word.replace(/ /g, '␣')}</span>;
           }
-
-          if (idx < input.length) {
-            className +=
-              currentChar === target[idx]
-                ? ' text-green-600'
-                : ' text-red-600 bg-red-100';
-          } else if (idx === input.length) {
-            className += ' bg-yellow-200 text-black rounded';
-          } else {
-            className += ' text-gray-500';
-          }
-
-          return (
-            <span key={idx} className={className}>
-              {char}
+          // Determine highlight for each char in word
+          const chars = word.split('').map((char, i) => {
+            let className = 'px-0.5';
+            const idx = charIdx + i;
+            const currentChar = input[idx];
+            if (char === ' ') {
+              char = '␣';
+              className += ' bg-gray-300 rounded';
+            }
+            if (idx < input.length) {
+              className +=
+                currentChar === target[idx]
+                  ? ' text-green-600'
+                  : ' text-red-600 bg-red-100';
+            } else if (idx === input.length) {
+              className += ' bg-yellow-200 text-black rounded';
+            } else {
+              className += ' text-gray-500';
+            }
+            return (
+              <span key={i} className={className}>{char}</span>
+            );
+          });
+          // Confetti for this word if triggered and Default Typer equipped
+          const showConfetti = equippedCharacter === 'default-typer' && confettiWords[wIdx];
+          const wordSpan = (
+            <span key={wIdx} className="relative inline-block">
+              {showConfetti && <Confetti trigger={true} />}
+              {chars}
             </span>
           );
+          charIdx += word.length;
+          return wordSpan;
         })}
-      </p>
+      </span>
     );
   };
 
@@ -427,79 +447,6 @@ export default function Home() {
 
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  // Add state for Duel a Friend modal and input
-  const [showDuelFriendModal, setShowDuelFriendModal] = useState(false);
-  const [friendName, setFriendName] = useState("");
-  const [duelError, setDuelError] = useState("");
-  const [duelLoading, setDuelLoading] = useState(false);
-
-  // State for incoming duel request
-  const [incomingDuelRequest, setIncomingDuelRequest] = useState<null | { from: string, roomId: string, accepted: boolean }>(null);
-
-  // Handler for Duel a Friend
-  const handleDuelFriend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setDuelError("");
-    setDuelLoading(true);
-    try {
-      const res = await fetch("/api/duel-friend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ friendName }),
-      });
-      const data = await res.json();
-      if (data.success && data.roomId) {
-        window.location.href = `/duel?room=${data.roomId}`;
-      } else {
-        setDuelError(data.error || "Could not start duel.");
-      }
-    } catch {
-      setDuelError("Network error.");
-    }
-    setDuelLoading(false);
-  };
-
-  // Poll for incoming duel requests
-  useEffect(() => {
-    let isMounted = true;
-    async function pollDuelRequests() {
-      try {
-        const res = await fetch('/api/duel-friend');
-        const data = await res.json();
-        if (isMounted && data.request && !data.request.accepted) {
-          setIncomingDuelRequest(data.request);
-        } else if (isMounted) {
-          setIncomingDuelRequest(null);
-        }
-      } catch {}
-    }
-    const pollInterval = setInterval(pollDuelRequests, 2000);
-    pollDuelRequests();
-    return () => {
-      isMounted = false;
-      clearInterval(pollInterval);
-    };
-  }, []);
-
-  // Accept/decline duel request
-  const handleDuelResponse = async (accept: boolean) => {
-    if (!incomingDuelRequest) return;
-    try {
-      const res = await fetch('/api/duel-friend', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accept }),
-      });
-      const data = await res.json();
-      if (accept && data.success && data.roomId) {
-        window.location.href = `/duel?room=${data.roomId}`;
-      } else {
-        setIncomingDuelRequest(null);
-      }
-    } catch {
-      setIncomingDuelRequest(null);
-    }
-  };
 
   // Main UI when loaded
   return (
@@ -546,11 +493,12 @@ export default function Home() {
           Duel Mode
         </button>
         <button
-          className="bg-yellow-400 text-black px-3 py-1 rounded-md font-semibold border border-yellow-600 hover:bg-yellow-500 transition"
-          onClick={() => { playClick(); handleEditAccount(); }}
+          className="bg-green-500 text-white px-4 py-2 rounded-md font-semibold border border-green-700 hover:bg-green-600 transition"
+          onClick={() => { playClick(); window.location.href = '/subscriptions'; }}
         >
-          Edit Account
+          Subscriptions
         </button>
+      {/* Edit Account button removed */}
         <button
           className="bg-purple-500 text-white px-4 py-2 rounded-md font-semibold border border-purple-700 hover:bg-purple-600 transition"
           onClick={() => { playClick(); window.location.href = '/characters'; }}
@@ -562,12 +510,6 @@ export default function Home() {
           onClick={() => { playClick(); window.location.href = '/settings'; }}
         >
           Settings
-        </button>
-        <button
-          className="bg-pink-500 text-white px-4 py-2 rounded-md font-semibold border border-pink-700 hover:bg-pink-600 transition"
-          onClick={() => { playClick(); setShowDuelFriendModal(true); }}
-        >
-          Duel a Friend
         </button>
       </div>
       <div className="h-20" /> {/* Spacer for fixed nav */}
@@ -666,34 +608,7 @@ export default function Home() {
               e.preventDefault();
               return;
             }
-            // DEFAULT-TYPER ABILITY: Skip to next space up to maxSkips
-            if (
-              equippedCharacter === 'default-typer' &&
-              e.key === 'Enter' &&
-              !isFinished
-            ) {
-              // Only allow skip if at a space or the current character is correct
-              const currentIdx = input.length;
-              if (target[currentIdx] !== ' ' && input[currentIdx] !== target[currentIdx]) {
-                // Block skip if not at a space and not correct
-                e.preventDefault();
-                return;
-              }
-              // Find the next space after the current input
-              const nextSpace = target.indexOf(' ', input.length);
-              let newInput = input;
-              if (nextSpace !== -1 && nextSpace > input.length) {
-                // Add spaces up to the next space, but don't add extra if already at space
-                const toAdd = target.slice(input.length, nextSpace + 1).replace(/[^ ]/g, '');
-                newInput += toAdd;
-              } else if (nextSpace === -1 && input.length < target.length) {
-                // At the end, add spaces up to the end if any
-                const toAdd = target.slice(input.length).replace(/[^ ]/g, '');
-                newInput += toAdd;
-              }
-              setInput(newInput);
-              e.preventDefault();
-            }
+            // ...existing code...
           }}
           className="w-full p-3 border rounded-md text-black"
           placeholder="Start typing..."
@@ -713,20 +628,18 @@ export default function Home() {
           <p className="mt-3 text-lg font-semibold text-green-600 animate-bounce">{feedback}</p>
         )}
 
+        {/* Progress bar is always visible and updates on word progress */}
+        <div className="w-full bg-gray-300 h-3 rounded-full mt-2 overflow-hidden">
+          <div
+            className={`bg-blue-500 h-full transition-all duration-500`}
+            style={{ width: `${wordProgressPercent}%` }}
+          />
+        </div>
         {wpm !== null ? (
-          <>
-            <div className={`mt-3 text-sm ${goalMet ? 'text-green-600' : 'text-red-600'}`}>
-              🕐 WPM: <span className="font-bold">{wpm}</span><br />
-              🎯 Accuracy: <span className="font-bold">{accuracy}</span>%
-            </div>
-            {/* Progress bar */}
-            <div className="w-full bg-gray-300 h-3 rounded-full mt-2 overflow-hidden">
-              <div
-                className={`${goalMet ? 'bg-green-600' : 'bg-red-600'} h-full transition-all duration-500`}
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
-          </>
+          <div className={`mt-3 text-sm ${goalMet ? 'text-green-600' : 'text-red-600'}`}>
+            🕐 WPM: <span className="font-bold">{wpm}</span><br />
+            🎯 Accuracy: <span className="font-bold">{accuracy}</span>%
+          </div>
         ) : (
           // Show live accuracy while typing before completion
           <div className="mt-3 text-sm text-gray-700">
@@ -738,87 +651,37 @@ export default function Home() {
           <p className="text-gray-600 text-sm">
             🧠 Skill Level: <span className="font-bold">{skill}</span>
           </p>
+          <div className="flex flex-row justify-center gap-4 mt-4">
+            <button
+              className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold border border-blue-700 hover:bg-blue-600 transition"
+              onClick={() => {
+                playClick();
+                setTimeout(() => {
+                  window.location.href = 'https://gamingcorporation.kinde.com/auth/cx/_:nav&m:register&psid:01988043a1f8373fbb822517dfcc0d1d&state:v1_c30d040703027b8ae68533da310a6ed28801203bc514e8b343ab72c17a254f4586677310344d0f26fff4bc4d62bc17bcb4f6d5125d6ba12e11c72961dc4d96a950a33ca4b8b0755bdac3d43c75fae5f63bf1b5e3fb4a0fa9709c913e9e9109310627961d8f2a9b5527ae153d02193385ac4d0f310deb3e3d84a3c08eb53883282a65bea329e9722fe55fbf2b92b45b40e0ab97cc6aee14fa8f';
+                }, 120);
+              }}
+            >
+              Sign In
+            </button>
+            <button
+              className="bg-green-500 text-white px-4 py-2 rounded-md font-semibold border border-green-700 hover:bg-green-600 transition"
+              onClick={() => {
+                playClick();
+                setTimeout(() => {
+                  window.location.href = 'https://gamingcorporation.kinde.com/auth/cx/_:nav&m:login&psid:01988041f349a0f85913063330fa49fb&state:v1_c30d04070302ac74b67ff3800abf6ed28801238bdd5a82e5a0bc1903646d50e410aef373c8688c53462fc097f97f313eac2ac3464345da0f8ffbb936237f97cb26c543943ca2cb88529f56501d412f96c34ed0806e2ada7e5ce525f7a210d70a6aa779f0e75c1988c3497b878b53d8bd6bdcdc2ffbddf910851dfee547c2582ca3b3e4829971c393b5161f104ffc62ff975cb7bbe6a6ec1d46';
+                }, 120);
+              }}
+            >
+              Sign Up
+            </button>
+            
+          </div>
+          
         </div>
       </div>
 
-      {/* Account Modal */}
-      {showAccountModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <form onSubmit={handleAccountSubmit} className="bg-white p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px] relative">
-            <button
-              type="button"
-              className="absolute top-2 right-2 text-gray-400 hover:text-red-600 text-2xl font-bold focus:outline-none"
-              aria-label="Close"
-              onClick={() => setShowAccountModal(false)}
-            >
-              &times;
-            </button>
-            <h2 className="text-2xl font-bold mb-2 text-center">{playerName ? "Edit Account" : "Create Account"}</h2>
-            {/* Use NamePicker for name selection */}
-            <NamePicker onNameSet={name => { setPlayerName(name); }} />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              className="p-3 border rounded-md text-black"
-              required
-            />
-            <button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition" onClick={playClick}>Save</button>
-          </form>
-        </div>
-      )}
+      {/* Account Modal removed */}
 
-      {/* Duel a Friend Modal */}
-      {showDuelFriendModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <form onSubmit={handleDuelFriend} className="bg-white p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px] relative">
-            <button
-              type="button"
-              className="absolute top-2 right-2 text-gray-400 hover:text-red-600 text-2xl font-bold focus:outline-none"
-              aria-label="Close"
-              onClick={() => setShowDuelFriendModal(false)}
-            >
-              &times;
-            </button>
-            <h2 className="text-2xl font-bold mb-2 text-center">Duel a Friend</h2>
-            <input
-              type="text"
-              placeholder="Friend's in-game name"
-              value={friendName}
-              onChange={e => setFriendName(e.target.value)}
-              className="p-3 border rounded-md text-black"
-              required
-            />
-            <button type="submit" className="bg-pink-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-pink-600 transition" disabled={duelLoading}>{duelLoading ? 'Checking...' : 'Send Duel Request'}</button>
-            {duelError && <p className="text-red-600 text-center">{duelError}</p>}
-          </form>
-        </div>
-      )}
-
-      {/* Incoming Duel Request Modal */}
-      {incomingDuelRequest && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="bg-white p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px] relative">
-            <h2 className="text-2xl font-bold mb-2 text-center">Duel Request</h2>
-            <p className="text-center text-lg">{incomingDuelRequest.from} wants to duel you!</p>
-            <div className="flex gap-4 justify-center mt-4">
-              <button
-                className="bg-green-500 text-white px-4 py-2 rounded-md font-semibold hover:bg-green-600 transition"
-                onClick={() => handleDuelResponse(true)}
-              >
-                Accept
-              </button>
-              <button
-                className="bg-gray-300 text-gray-800 px-4 py-2 rounded-md font-semibold hover:bg-gray-400 transition"
-                onClick={() => handleDuelResponse(false)}
-              >
-                Decline
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Average Accuracy Floating Corner */}
       <div className="fixed bottom-4 right-4 z-50 bg-white/90 border border-gray-300 rounded-xl px-5 py-3 shadow-lg text-right">

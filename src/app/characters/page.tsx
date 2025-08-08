@@ -3,14 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 const characters = [
-	{
-		id: 'default-typer',
-		name: 'Default Typer',
-		cost: { duelPoints: 10, skillPoints: 20 },
-		ownedKey: 'char_default_typer',
-		ability: 'Can skip one word per sentence.',
-		image: '/computer.png', // Fixed: removed /public
-	},
+
 	{
 		id: 'pro',
 		name: 'Good Typer',
@@ -24,7 +17,7 @@ const characters = [
 		name: 'Pro Typer',
 		cost: { duelPoints: 60, skillPoints: 100 },
 		ownedKey: 'char_pro_wihich',
-		ability: `When pressing Enter, makes the whole screen red then skips three whole words (usable once per sentence).`,
+		ability: `supernova`,
 		image: '/Pro.png',
 	},
 	{
@@ -47,9 +40,9 @@ const characters = [
 		id: '????',
 		name: '?????',
 		cost: { duelPoints: 350, skillPoints: 350 },
-		ownedKey: 'char_master',
+		ownedKey: 'char_unkown',
 		ability: `Unkown`,
-		image: '/Unkown.Png', // Fixed: removed /public
+		image: '/Unkown.png', // Fixed: removed /public
 	},
 ];
 
@@ -114,41 +107,41 @@ export default function CharactersPage() {
 		return () => interval && clearInterval(interval!);
 	}, [mounted, equipped, owned['char_master']]);
 
-	const handleBuyWithDuel = (char: typeof characters[0]) => {
-		if (owned[char.ownedKey]) return;
-		if (duelPoints >= char.cost.duelPoints) {
-			const newDuel = duelPoints - char.cost.duelPoints;
-			localStorage.setItem('duelPoints', newDuel.toString());
-			localStorage.setItem(char.ownedKey, '1');
-			setDuelPoints(newDuel);
-			setOwned(prev => ({ ...prev, [char.ownedKey]: true }));
-			// Save all relevant data
-			localStorage.setItem('ownedCharacters', JSON.stringify({ ...owned, [char.ownedKey]: true }));
-			// Auto-equip after buying
-			localStorage.setItem('equippedCharacter', char.id);
-			setEquipped(char.id);
-		} else {
-			alert('Not enough Duel Points!');
-		}
-	};
+const handleBuyWithDuel = (char: typeof characters[0]) => {
+  if (owned[char.ownedKey]) return;
+  if (duelPoints >= char.cost.duelPoints) {
+	const newDuel = duelPoints - char.cost.duelPoints;
+	localStorage.setItem('duelPoints', newDuel.toString());
+	localStorage.setItem(char.ownedKey, '1');
+	setDuelPoints(newDuel);
+	setOwned(prev => ({ ...prev, [char.ownedKey]: true }));
+	// Save all relevant data
+	localStorage.setItem('ownedCharacters', JSON.stringify({ ...owned, [char.ownedKey]: true }));
+	// Auto-equip after buying
+	localStorage.setItem('equippedCharacter', char.id);
+	setEquipped(char.id);
+  } else {
+	alert('Not enough Duel Points!');
+  }
+};
 
-	const handleBuyWithSkill = (char: typeof characters[0]) => {
-		if (owned[char.ownedKey]) return;
-		if (skill >= char.cost.skillPoints) {
-			const newSkill = skill - char.cost.skillPoints;
-			localStorage.setItem('typingSkill', newSkill.toString());
-			localStorage.setItem(char.ownedKey, '1');
-			setSkill(newSkill);
-			setOwned(prev => ({ ...prev, [char.ownedKey]: true }));
-			// Save all relevant data
-			localStorage.setItem('ownedCharacters', JSON.stringify({ ...owned, [char.ownedKey]: true }));
-			// Auto-equip after buying
-			localStorage.setItem('equippedCharacter', char.id);
-			setEquipped(char.id);
-		} else {
-			alert('Not enough Skill Points!');
-		}
-	};
+const handleBuyWithSkill = (char: typeof characters[0]) => {
+  if (owned[char.ownedKey]) return;
+  if (skill >= char.cost.skillPoints) {
+	const newSkill = skill - char.cost.skillPoints;
+	localStorage.setItem('typingSkill', newSkill.toString());
+	localStorage.setItem(char.ownedKey, '1');
+	setSkill(newSkill);
+	setOwned(prev => ({ ...prev, [char.ownedKey]: true }));
+	// Save all relevant data
+	localStorage.setItem('ownedCharacters', JSON.stringify({ ...owned, [char.ownedKey]: true }));
+	// Auto-equip after buying
+	localStorage.setItem('equippedCharacter', char.id);
+	setEquipped(char.id);
+  } else {
+	alert('Not enough Skill Points!');
+  }
+};
 
 	const handleEquip = (char: typeof characters[0]) => {
 		if (!owned[char.ownedKey]) return;
