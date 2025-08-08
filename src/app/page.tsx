@@ -2,13 +2,32 @@
 
 'use client';
 
+
 import { useEffect, useState, useRef } from 'react';
 import { useErrorAudio } from "../hooks/useErrorAudio";
 import Image from 'next/image';
-import dynamic from 'next/dynamic';
-import Confetti from './components/Confetti';
 
-const NamePicker = dynamic(() => import('./components/NamePicker'), { ssr: false });
+// Simple Confetti component placeholder (replace with your actual implementation or library)
+const Confetti = ({ trigger }: { trigger: boolean }) => {
+  if (!trigger) return null;
+  return (
+    <span
+      style={{
+        position: 'absolute',
+        left: '50%',
+        top: '-1.5em',
+        transform: 'translateX(-50%)',
+        pointerEvents: 'none',
+        fontSize: '2em',
+        zIndex: 10,
+      }}
+      aria-label="Confetti"
+    >
+      🎉
+    </span>
+  );
+};
+
 
 const sentenceBank = {
   easy: [
@@ -70,7 +89,6 @@ export default function Home() {
 
   // User account state (popup removed)
   const [playerName, setPlayerName] = useState("");
-  const [password, setPassword] = useState("");
 
   // Track equipped character
   const [equippedCharacter, setEquippedCharacter] = useState<string | null>(null);
@@ -132,6 +150,7 @@ export default function Home() {
 
   useEffect(() => {
     generateSentence();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [difficulty]);
 
   useEffect(() => {
@@ -175,7 +194,6 @@ export default function Home() {
       const savedName = localStorage.getItem("playerName");
       const savedPass = localStorage.getItem("playerPassword");
       setPlayerName(savedName || "");
-      setPassword(savedPass || "");
       // setShowAccountModal(false); // removed
     } else {
     // setShowAccountModal(true); // removed
@@ -237,7 +255,7 @@ export default function Home() {
   };
 
   // Fix accuracy calculation to ignore trailing spaces
-  const calculateAccuracy = (typed: string, correct: string) => {
+  const calculateAccuracy = (typed: string) => {
     // Accuracy is now based on mistakes made
     const totalTyped = typed.trimEnd().length;
     const mistakes = mistakeCount;
@@ -261,7 +279,7 @@ export default function Home() {
         if (newVal[i] !== target[i]) {
           playError();
           setMistakeCount(prev => prev + 1);
-          setAccuracy(calculateAccuracy(newVal, target));
+          setAccuracy(calculateAccuracy(newVal));
           return;
         }
       }
@@ -269,7 +287,7 @@ export default function Home() {
       if (newVal[newVal.length - 1] !== target[newVal.length - 1]) {
         playError();
         setMistakeCount(prev => prev + 1);
-        setAccuracy(calculateAccuracy(newVal, target));
+        setAccuracy(calculateAccuracy(newVal));
         return;
       }
     }
@@ -286,7 +304,7 @@ export default function Home() {
     }
 
     // Only update accuracy if not blocked above
-    setAccuracy(calculateAccuracy(newVal, target));
+    setAccuracy(calculateAccuracy(newVal));
 
     if (newVal.length === target.length) {
       setIsFinished(true);
@@ -301,7 +319,7 @@ export default function Home() {
       setWpmHistory(prev => [...prev, calculatedWpm]);
 
       // In solo mode, just show accuracy feedback, not 'You win!'
-      setFeedback(`✅ Submitted! Accuracy: ${calculateAccuracy(newVal, target)}%`);
+      setFeedback(`✅ Submitted! Accuracy: ${calculateAccuracy(newVal)}%`);
 
       setTimeout(() => {
         setFeedback("");
