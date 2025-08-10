@@ -396,10 +396,8 @@ export default function Home() {
             );
           });
           // Confetti for this word if triggered and Default Typer equipped
-          const showConfetti = equippedCharacter === 'default-typer' && confettiWords[wIdx];
           const wordSpan = (
             <span key={wIdx} className="relative inline-block">
-              
               {chars}
             </span>
           );
