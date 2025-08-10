@@ -7,51 +7,9 @@ import { useEffect, useState, useRef } from 'react';
 import { useErrorAudio } from "../hooks/useErrorAudio";
 import Image from 'next/image';
 
-// Simple Confetti component placeholder (replace with your actual implementation or library)
-const Confetti = ({ trigger }: { trigger: boolean }) => {
-  if (!trigger) return null;
-  return (
-    <span
-      style={{
-        position: 'absolute',
-        left: '50%',
-        top: '-1.5em',
-        transform: 'translateX(-50%)',
-        pointerEvents: 'none',
-        fontSize: '2em',
-        zIndex: 10,
-      }}
-      aria-label="Confetti"
-    >
-      🎉
-    </span>
-  );
-};
 
 
-const sentenceBank = {
-  easy: [
-    "Hi there.",
-    "I like cats.",
-    "Fast fox.",
-    "Hello world.",
-    "Nice job!"
-  ],
-  medium: [
-    "The quick brown fox jumps over the lazy dog.",
-    "Typing fast is a useful skill.",
-    "Tailwind CSS is awesome.",
-    "I love coding fun projects.",
-    "Next.js makes building web apps easier."
-  ],
-  hard: [
-    "JavaScript developers often face asynchronous challenges.",
-    "Efficiency in algorithms can greatly affect performance.",
-    "Next.js integrates both frontend and backend logic seamlessly.",
-    "Performance optimization is vital for user experience.",
-    "Complexity in state management can hinder scalability."
-  ]
-};
+
 
 
 export default function Home() {
@@ -187,7 +145,6 @@ export default function Home() {
     const accountCreated = localStorage.getItem("accountCreated");
     if (accountCreated === "true") {
       const savedName = localStorage.getItem("playerName");
-      const savedPass = localStorage.getItem("playerPassword");
       setPlayerName(savedName || "");
       // setShowAccountModal(false); // removed
     } else {
@@ -238,6 +195,30 @@ export default function Home() {
       chosenDifficulty = difficulty === 'hard' ? 'medium' : 'easy';
     }
 
+    // Example sentence bank for each difficulty
+    const sentenceBank: { [key in 'easy' | 'medium' | 'hard']: string[] } = {
+      easy: [
+        "The cat sat on the mat.",
+        "I like to type fast.",
+        "Dogs bark at night.",
+        "It is a sunny day.",
+        "She has a red hat."
+      ],
+      medium: [
+        "Typing quickly improves your skills.",
+        "Practice makes perfect in every way.",
+        "The quick brown fox jumps over the lazy dog.",
+        "Learning to code is fun and rewarding.",
+        "Always check your work for mistakes."
+      ],
+      hard: [
+        "Sphinx of black quartz, judge my vow.",
+        "Pack my box with five dozen liquor jugs.",
+        "The five boxing wizards jump quickly.",
+        "How vexingly quick daft zebras jump!",
+        "Jinxed wizards pluck ivy from the big quilt."
+      ]
+    };
     const sentenceList = sentenceBank[chosenDifficulty];
     const random = sentenceList[Math.floor(Math.random() * sentenceList.length)];
     setTarget(random);
@@ -418,7 +399,7 @@ export default function Home() {
           const showConfetti = equippedCharacter === 'default-typer' && confettiWords[wIdx];
           const wordSpan = (
             <span key={wIdx} className="relative inline-block">
-              {showConfetti && <Confetti trigger={true} />}
+              
               {chars}
             </span>
           );
