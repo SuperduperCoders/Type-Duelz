@@ -53,11 +53,6 @@ const sentenceBank = {
   ]
 };
 
-const wpmGoals = {
-  easy: 20,
-  medium: 40,
-  hard: 60,
-};
 
 export default function Home() {
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
@@ -339,6 +334,12 @@ export default function Home() {
   //     ? Math.round(wpmHistory.reduce((a, b) => a + b, 0) / wpmHistory.length)
   //     : 0;
 
+  // Define WPM goals for each difficulty
+  const wpmGoals: { [key in 'easy' | 'medium' | 'hard']: number } = {
+    easy: 25,
+    medium: 40,
+    hard: 60,
+  };
   const currentGoal = wpmGoals[difficulty];
 
   // Progress bar: show percent of words completed

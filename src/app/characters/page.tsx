@@ -107,6 +107,7 @@ export default function CharactersPage() {
 		return () => interval && clearInterval(interval!);
 	}, [mounted, equipped, owned['char_master']]);
 
+
 const handleBuyWithDuel = (char: typeof characters[0]) => {
   if (owned[char.ownedKey]) return;
   if (duelPoints >= char.cost.duelPoints) {

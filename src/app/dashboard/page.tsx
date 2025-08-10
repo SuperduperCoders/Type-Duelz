@@ -4,8 +4,6 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useErrorAudio } from "../../hooks/useErrorAudio";
-import Image from 'next/image';
 import dynamic from 'next/dynamic';
 
 const NamePicker = dynamic(() => import('../components/NamePicker'), { ssr: false });
