@@ -1,3 +1,1 @@
-import {handleAuth} from "@kinde-oss/kinde-auth-nextjs/server";
-
-export const GET = handleAuth();
+// Kinde authentication removed. Implement alternative logic if needed.
