@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useErrorAudio } from "../../hooks/useErrorAudio";
 
@@ -78,7 +78,7 @@ export default function Duel() {
 		// Set AI speed to match average WPM
 		let avgWpm = 20;
 		if (wpmHistory.length > 0) {
-			avgWpm = Math.round(wpmHistory.reduce((a, b) => a + b, 0) / wpmHistory.length);
+			avgWpm = Math.round(wpmHistory.reduce((a: number, b: number) => a + b, 0) / wpmHistory.length);
 			if (avgWpm < 1) avgWpm = 1;
 		}
 		setAiSpeed(60000 / (avgWpm * 5));
@@ -91,7 +91,7 @@ export default function Duel() {
 		if (aiFinished || userFinished) return;
 		if (aiIndex < target.length) {
 			const timeout = setTimeout(() => {
-				setAiIndex((idx) => idx + 1);
+				setAiIndex((idx: number) => idx + 1);
 			}, aiSpeed);
 			return () => clearTimeout(timeout);
 		} else {
@@ -201,7 +201,7 @@ export default function Duel() {
 					typingAudioRef.current!.currentTime = 0;
 					unlocked = true;
 					console.log('Typing audio unlocked (duel)');
-				}).catch((e) => {
+				}).catch((e: Error) => {
 					unlocked = true;
 					console.log('Typing audio unlock failed (duel):', e);
 				});
@@ -253,7 +253,7 @@ export default function Duel() {
 		if (typingAudioRef.current) {
 			typingAudioRef.current.pause();
 			typingAudioRef.current.currentTime = 0;
-			typingAudioRef.current.play().catch((e) => {
+			typingAudioRef.current.play().catch((e: Error) => {
 				console.log('Typing audio play failed (duel):', e);
 			});
 		}
@@ -263,9 +263,9 @@ export default function Duel() {
 			const durationInMinutes = (endTime - (startTime ?? endTime)) / 60000;
 			const wordCount = target.trim().split(/\s+/).length;
 			const calculatedWpm = Math.round(wordCount / durationInMinutes);
-			setWpmHistory((prev) => [...prev, calculatedWpm]);
+			setWpmHistory((prev: number[]) => [...prev, calculatedWpm]);
 			if (!aiFinished) {
-				setDuelPoints((p) => p + 5);
+				setDuelPoints((p: number) => p + 5);
 				setResult("\ud83c\udfc6 You win! +5 Duel Points");
 			} else {
 				setResult(`\u274c ${opponentName} wins! Try again.`);
@@ -299,7 +299,7 @@ export default function Duel() {
 	const renderHighlightedTarget = () => {
 		return (
 			<p className="font-mono text-lg flex flex-wrap">
-				{target.split("").map((char, idx) => {
+				{target.split("").map((char: string, idx: number) => {
 					let className = "px-0.5";
 					const currentChar = input[idx];
 					if (char === " ") {
@@ -364,7 +364,7 @@ export default function Duel() {
 		setAiIndex(0);
 		setShowKillMsg('Kill used! You win instantly.');
 		setResult('🏆 You win! +5 Duel Points');
-		setDuelPoints((p) => p + 5);
+		setDuelPoints((p: number) => p + 5);
 		setTimeout(() => setShowKillMsg(''), 2000);
 	};
 
