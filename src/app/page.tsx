@@ -198,25 +198,209 @@ export default function Home() {
     // Example sentence bank for each difficulty
     const sentenceBank: { [key in 'easy' | 'medium' | 'hard']: string[] } = {
       easy: [
-        "The cat sat on the mat.",
-        "I like to type fast.",
-        "Dogs bark at night.",
-        "It is a sunny day.",
-        "She has a red hat."
+        "I like cats.", "You are my friend.", "It is sunny today.", "I am happy.", "We play outside.", "This is my toy.", "I like pizza.", "She is nice.", "He runs fast.", "The sky is blue.", "I see a bird.", "We have fun.", "It is cold.", "I love books.", "They are kind.", "You can do it.", "I have a ball.", "He is smart.", "She sings well.", "I like games.", "It is hot.", "I see the moon.", "We eat lunch.", "He has a hat.", "She reads a lot.", "It is raining.", "I love cake.", "You are tall.", "They are happy.", "We go to school.", "I have a pet.", "He is funny.", "She likes music.", "It is late.", "I am tired.", "We watch TV.", "He has shoes.", "She is here.", "I see a fish.", "It is green.", "I like bread.", "We play tag.", "He is cool.", "She runs fast.", "It is dark.", "I love milk.", "You are nice.", "They are friends.", "We jump high.", "I have a kite.", "He likes cars.", "She is kind.", "It is windy.", "I like soup.", "We play chess.", "He is brave.", "She dances well.", "It is small.", "I love apples.", "You are funny.", "They play soccer.", "We are safe.", "I see stars.", "He likes cake.", "She is shy.", "It is big.", "I love rain.", "We eat dinner.", "He is kind.", "She paints well.", "It is fun.", "I have toys.", "You are strong.", "They are smart.", "We sing songs.", "I see a tree.", "He rides bikes.", "She is calm.", "It is loud.", "I love dogs.", "We eat fruit.", "He is tall.", "She likes tea.", "It is soft.", "I like math.", "You are fast.", "They are fun.", "We play games.", "I have bread.", "He likes books."
       ],
       medium: [
-        "Typing quickly improves your skills.",
-        "Practice makes perfect in every way.",
-        "The quick brown fox jumps over the lazy dog.",
-        "Learning to code is fun and rewarding.",
-        "Always check your work for mistakes."
+        "The garden was full of bright red roses",
+
+"A small cat slept under the wooden table",
+
+"The ocean waves crashed loudly against the shore",
+
+"She read her favorite book by the fireplace",
+
+"The teacher explained the lesson with great patience",
+
+"We walked through the quiet streets at night",
+
+"The old clock ticked slowly in the corner",
+
+"A gentle breeze moved through the tall grass",
+
+"The baker placed fresh bread on the shelf",
+
+"He wrote a letter to his best friend",
+
+"The candlelight flickered softly against the walls",
+
+"They played cards by the warm kitchen fire",
+
+"The puppy barked happily at the passing car",
+
+"We watched the stars from the wooden balcony",
+
+"The smell of coffee filled the small room",
+
+"She wore a blue dress with white polka dots",
+
+"The rain tapped gently against the glass window",
+
+"The farmer fed the chickens in the yard",
+
+"They painted the fence a bright shade of blue",
+
+"He placed the flowers in a crystal vase",
+
+"The forest path was covered with fallen leaves",
+
+"A red kite flew high above the meadow",
+
+"The sound of laughter filled the summer air",
+
+"She tied her hair with a red ribbon",
+
+"The little boy carried a basket of apples",
+
+"The snow covered the rooftops during the night",
+
+"We shared a pizza under the moonlit sky",
+
+"The lantern lit the path through the dark woods",
+
+"He closed the book and sighed with relief",
+
+"A bird sang sweetly on the garden fence",
+
+"The children built a sandcastle by the water",
+
+"She kept her diary hidden under the bed",
+
+"The old train whistled as it left the station",
+
+"We danced together in the empty city street",
+
+"A rainbow appeared after the heavy summer rain",
+
+"The mountains looked beautiful in the golden light",
+
+"She poured tea into the small porcelain cups",
+
+"The cat jumped onto the sunny window ledge",
+
+"We explored the caves near the rocky beach",
+
+"The baker smiled while kneading the fresh dough",
+
+"A single candle burned in the dark room",
+
+"They packed sandwiches for their afternoon picnic",
+
+"The leaves rustled quietly in the gentle wind",
+
+"She painted the door a bright sunny yellow",
+
+"The river flowed swiftly after the heavy rain",
+
+"We planted flowers along the wooden garden fence",
+
+"The clouds drifted slowly across the blue sky",
+
+"The market was crowded with people buying fruit",
+
+"He fixed the old clock on the wall",
+
+"The children chased butterflies in the open field"
       ],
       hard: [
-        "Sphinx of black quartz, judge my vow.",
-        "Pack my box with five dozen liquor jugs.",
-        "The five boxing wizards jump quickly.",
-        "How vexingly quick daft zebras jump!",
-        "Jinxed wizards pluck ivy from the big quilt."
+        "The storm raged outside, yet the candlelight flickered gently on the table",
+
+"Despite the danger, she stepped forward to face the towering shadow before her",
+
+"He studied the map carefully, searching for a route no one had taken",
+
+"Under the pale moonlight, the fox darted swiftly across the frosted meadow",
+
+"The locked chest rattled mysteriously, as if something inside demanded to be freed",
+
+"She whispered the final clue, knowing it would change the course of the game",
+
+"Rain pounded on the roof while the fire crackled warmly in the hearth",
+
+"He carried the ancient key, unsure whether it would open a door or a trap",
+
+"The mist thickened around them, hiding the path they thought they knew so well",
+
+"Through the shattered window, the first rays of morning light spilled into the room",
+
+"The old library smelled of parchment and dust, preserving secrets from generations past",
+
+"She adjusted her glasses and carefully examined the intricate design of the artifact",
+
+"Lightning illuminated the sky, revealing the outline of the distant, crumbling castle",
+
+"He tiptoed across the floor, careful not to wake anyone in the silent house",
+
+"The journal contained pages filled with sketches of unknown creatures and strange landscapes",
+
+"Fog rolled in over the lake, hiding the small boat drifting aimlessly",
+
+"Her hands trembled slightly as she unlocked the ancient, ornate wooden door",
+
+"The clock struck midnight, and shadows seemed to move independently across the walls",
+
+"He listened intently, hearing footsteps echo through the long, empty corridor",
+
+"A chill ran down her spine as the wind whispered through the abandoned garden",
+
+"The candle flickered, casting eerie shapes on the cracked and peeling walls",
+
+"He carefully opened the envelope, revealing a letter written in unfamiliar handwriting",
+
+"The waves crashed against the cliffs, spraying salty water into the stormy air",
+
+"She followed the narrow trail through the forest, unsure what awaited at the end",
+
+"The painting depicted a scene so vivid it almost seemed to move",
+
+"Thunder rumbled ominously, shaking the windows of the small, lonely cabin",
+
+"He adjusted the telescope, hoping to catch a glimpse of the rare comet",
+
+"The key turned slowly, releasing a loud click that echoed through the empty hall",
+
+"A lone wolf howled in the distance, sending shivers down their spines",
+
+"The diary contained secrets that could alter the fate of everyone involved",
+
+"She carefully traced the strange symbols carved into the old stone wall",
+
+"The air smelled of rain and pine, signaling the coming of a long storm",
+
+"He followed the faint trail of footprints disappearing into the dense underbrush",
+
+"The lantern swung back and forth, illuminating the foggy, deserted street",
+
+"A sudden gust of wind blew open the creaky wooden door",
+
+"She realized the map was incomplete, missing crucial landmarks needed to continue",
+
+"The bell tower rang out, signaling the start of an unknown, mysterious event",
+
+"He stared at the mysterious object, unsure whether it was a tool or weapon",
+
+"The pages of the ancient book were brittle and yellowed with age",
+
+"Through the misty valley, the sound of rushing water grew steadily louder",
+
+"She listened to the whispers of the forest, hoping to understand its secrets",
+
+"The candle’s flame flickered violently as the shadows seemed to gather around",
+
+"He clutched the pendant tightly, feeling a strange warmth emanating from it",
+
+"The train screeched to a halt, leaving the passengers stranded on the deserted platform",
+
+"She opened the small wooden box, revealing a collection of ancient coins",
+
+"The rain had stopped, leaving puddles that reflected the dim city lights",
+
+"He examined the map under the faint glow of a single lantern",
+
+"The abandoned mansion loomed over the hill, dark and foreboding in the fog",
+
+"She stepped cautiously across the creaking floorboards, trying not to alert anyone",
+
+"The distant sound of drums echoed across the valley, mysterious and rhythmic"
       ]
     };
     const sentenceList = sentenceBank[chosenDifficulty];
@@ -645,60 +829,50 @@ export default function Home() {
           </div>
         )}
 
-        <div className="mt-6 text-center">
-          <p className="text-gray-600 text-sm">
-            🧠 Skill Level: <span className="font-bold">{skill}</span>
-          </p>
-          <div className="flex flex-row justify-center gap-4 mt-4">
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold border border-blue-700 hover:bg-blue-600 transition"
-              onClick={() => {
-                playClick();
-                setTimeout(() => {
-                  window.location.href = 'https://gamingcorporation.kinde.com/auth/cx/_:nav&m:register&psid:01988043a1f8373fbb822517dfcc0d1d&state:v1_c30d040703027b8ae68533da310a6ed28801203bc514e8b343ab72c17a254f4586677310344d0f26fff4bc4d62bc17bcb4f6d5125d6ba12e11c72961dc4d96a950a33ca4b8b0755bdac3d43c75fae5f63bf1b5e3fb4a0fa9709c913e9e9109310627961d8f2a9b5527ae153d02193385ac4d0f310deb3e3d84a3c08eb53883282a65bea329e9722fe55fbf2b92b45b40e0ab97cc6aee14fa8f';
-                }, 120);
-              }}
-            >
-              Sign In
-            </button>
-            <button
-              className="bg-green-500 text-white px-4 py-2 rounded-md font-semibold border border-green-700 hover:bg-green-600 transition"
-              onClick={() => {
-                playClick();
-                setTimeout(() => {
-                  window.location.href = 'https://gamingcorporation.kinde.com/auth/cx/_:nav&m:login&psid:01988041f349a0f85913063330fa49fb&state:v1_c30d04070302ac74b67ff3800abf6ed28801238bdd5a82e5a0bc1903646d50e410aef373c8688c53462fc097f97f313eac2ac3464345da0f8ffbb936237f97cb26c543943ca2cb88529f56501d412f96c34ed0806e2ada7e5ce525f7a210d70a6aa779f0e75c1988c3497b878b53d8bd6bdcdc2ffbddf910851dfee547c2582ca3b3e4829971c393b5161f104ffc62ff975cb7bbe6a6ec1d46';
-                }, 120);
-              }}
-            >
-              Sign Up
-            </button>
-            
-          </div>
-          
-        </div>
+<div className="mt-6 text-center">
+  <p className="text-gray-600 text-sm">
+    🧠 Skill Level: <span className="font-bold">{skill}</span>
+  </p>
+  <p className="text-gray-600 text-sm">
+    🏅 Top WPM: <span className="font-bold">{wpmHistory.length > 0 ? Math.max(...wpmHistory) : 0}</span>
+  </p>
+  <p className="text-gray-600 text-sm">
+    🏆 Current Goal: <span className="font-bold">{currentGoal} W</span>
+  </p>
+  
+  <div className="flex flex-row justify-center gap-4 mt-4">
+    <button
+      className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold border border-blue-700 hover:bg-blue-600 transition"
+      onClick={() => { playClick(); generateSentence(); }}
+    >
+      New Sentence
+    </button>
+  </div>
+</div>
+
+{/* Average Accuracy Floating Corner */}
+<div className="fixed bottom-4 right-4 z-50 bg-white/90 border border-gray-300 rounded-xl px-5 py-3 shadow-lg text-right">
+  <div className="text-xs text-gray-500 font-semibold mb-1">Avg. Accuracy</div>
+  <div className="text-lg font-bold text-blue-700">
+    {wpmHistory.length > 0 ? `${Math.round(accuracy)}%` : 'N/A'}
+  </div>
+</div> {/* ✅ Close this before style */}
+
+<style jsx global>{`
+  @keyframes spin-slow {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 2s linear infinite;
+  }
+`}</style>
       </div>
 
-      {/* Account Modal removed */}
-
-
-      {/* Average Accuracy Floating Corner */}
-      <div className="fixed bottom-4 right-4 z-50 bg-white/90 border border-gray-300 rounded-xl px-5 py-3 shadow-lg text-right">
-        <div className="text-xs text-gray-500 font-semibold mb-1">Avg. Accuracy</div>
-        <div className="text-lg font-bold text-blue-700">
-          {/* Since only the latest accuracy is tracked, show average of all completed rounds as 100% for now, or N/A if none */}
-          {wpmHistory.length > 0 ? `${Math.round(accuracy)}%` : 'N/A'}
-        </div>
-      </div>
-
-      <style jsx global>{`
-        @keyframes spin-slow {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-        .animate-spin-slow {
-          animation: spin-slow 2s linear infinite;
-        }
-      `}</style>
+      {/* Audio for typing sound */}
+      <audio ref={typingAudioRef} src="/typing.mp3" preload="auto" />
+      <audio ref={errorAudioRef} src="/error.mp3" preload="auto" />
+      <audio ref={clickAudioRef} src="/click.mp3" preload="auto" />
     </main>
   );
-}
+} 

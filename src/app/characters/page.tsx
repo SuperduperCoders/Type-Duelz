@@ -38,10 +38,10 @@ const characters = [
 	},
 	{
 		id: '????',
-		name: '?????',
-		cost: { duelPoints: 350, skillPoints: 350 },
+		name: 'Undercover Typer',
+		cost: { duelPoints: 400, skillPoints: 250 },
 		ownedKey: 'char_unkown',
-		ability: `Unkown`,
+		ability: `Shadow`,
 		image: '/Unkown.png', // Fixed: removed /public
 	},
 ];
