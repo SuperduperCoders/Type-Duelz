@@ -508,23 +508,8 @@ export default function Duel() {
 							}
 							// Enter key: finalize input (for all characters)
 							if (e.key === 'Enter' && !userFinished && !aiFinished) {
-								if (input.trim() === "") {
-									e.preventDefault();
-									return;
-								}
-								setUserFinished(true);
-								const endTime = Date.now();
-								const durationInMinutes = (endTime - (startTime ?? endTime)) / 60000;
-								const wordCount = target.trim().split(/\s+/).length;
-								const calculatedWpm = Math.round(wordCount / durationInMinutes);
-								setWpmHistory((prev) => [...prev, calculatedWpm]);
-								if (!aiFinished) {
-									setDuelPoints((p) => p + 5);
-									setResult("\ud83c\udfc6 You win! +5 Duel Points");
-								} else {
-									setResult(`\u274c ${opponentName} wins! Try again.`);
-								}
 								e.preventDefault();
+								return;
 							}
 							// Default Enter behavior: allow form submission or other handlers
 						}}
