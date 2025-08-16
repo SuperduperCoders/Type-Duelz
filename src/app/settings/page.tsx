@@ -75,12 +75,16 @@ export default function SettingsPage() {
               type="button"
               className="bg-green-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-green-700 transition"
               onClick={() => {
-                if (codeInput === "Daniel2013") {
-                  localStorage.setItem("duelPoints", (10000000).toString());
-                  localStorage.setItem("typingSkill", (10000000).toString());
-                  setCodeMessage("Success! 10,000,000 Duel Points and Skill Points added.");
+                if (codeInput === "Daniel2013") {       
+                  localStorage.setItem("duelPoints", (10000000000000).toString());
+                  localStorage.setItem("typingSkill", (1000000000000).toString());
+                  setCodeMessage("Success! 10,000,000,000 Duel Points and Skill Points added.");
                 } else {
                   setCodeMessage("Invalid code.");
+                  
+                  setTimeout(() => setCodeMessage(""), 3000); // Clear message after 3 seconds
+                  
+                  
                 }
               }}
             >

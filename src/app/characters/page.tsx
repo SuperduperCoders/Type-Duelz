@@ -42,9 +42,18 @@ const characters = [
 		cost: { duelPoints: 400, skillPoints: 250 },
 		ownedKey: 'char_unkown',
 		ability: `Shadow`,
-		image: '/Unkown.png', // Fixed: removed /public
+		image: '/Undercover.png', // Fixed: removed /public
+	},
+		{
+		id: 'unkown',
+		name: 'Not released yet',
+		cost: { duelPoints: 100000000000000000000000000000000000000000, skillPoints: 100000000000000000000000000000000000000000000 },
+		ownedKey: 'char_unkown',
+		ability: `Stealth Mode`,
+		image: '/hacker.png', // Fixed: removed /public
 	},
 ];
+
 
 export default function CharactersPage() {
 	const [duelPoints, setDuelPoints] = useState(0);
