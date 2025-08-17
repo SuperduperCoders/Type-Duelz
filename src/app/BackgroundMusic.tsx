@@ -27,11 +27,11 @@ export default function BackgroundMusic() {
       <button
         onClick={toggleMute}
         style={{
-          position: 'absolute',
+          position: 'fixed',
           right: 0,
-          top: 0,
-          marginRight: '8px',
-          marginTop: '8px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          marginRight: '16px',
           background: '#fff',
           color: '#333',
           borderRadius: 8,
