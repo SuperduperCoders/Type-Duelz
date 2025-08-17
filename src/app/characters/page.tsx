@@ -7,7 +7,7 @@ const characters = [
 	{
 		id: 'pro',
 		name: 'Good Typer',
-		cost: { duelPoints: 30, skillPoints: 50 },
+		cost: { duelPoints: 25, skillPoints: 10 },
 		ownedKey: 'char_pro',
 		ability: 'In Duel Mode, has a 50% chance to get a shorter sentence!',
 		image: '/GoodTyper.png', // Fixed: removed /public
@@ -15,7 +15,7 @@ const characters = [
 	{
 		id: 'pro-wihich',
 		name: 'Pro Typer',
-		cost: { duelPoints: 60, skillPoints: 100 },
+		cost: { duelPoints: 50, skillPoints: 40 },
 		ownedKey: 'char_pro_wihich',
 		ability: `supernova`,
 		image: '/Pro.png',
@@ -31,24 +31,24 @@ const characters = [
 	{
 		id: 'master',
 		name: 'Master',
-		cost: { duelPoints: 200, skillPoints: 400 },
+		cost: { duelPoints: 300, skillPoints: 400 },
 		ownedKey: 'char_master',
 		ability: `Murder`,
 		image: '/Master.Png', // Fixed: removed /public
 	},
 	{
-		id: '????',
+		id: 'undercover',
 		name: 'Undercover Typer',
 		cost: { duelPoints: 400, skillPoints: 250 },
-		ownedKey: 'char_unkown',
+		ownedKey: 'char_undercover',
 		ability: `Shadow`,
 		image: '/Undercover.png', // Fixed: removed /public
 	},
-		{
-		id: 'unkown',
-		name: 'Not released yet',
-		cost: { duelPoints: 100000000000000000000000000000000000000000, skillPoints: 100000000000000000000000000000000000000000000 },
-		ownedKey: 'char_unkown',
+	{
+		id: 'hacker',
+		name: 'Hacker Typer',
+		cost: { duelPoints: 1500, skillPoints: 1230 },
+		ownedKey: 'char_hacker',
 		ability: `Stealth Mode`,
 		image: '/hacker.png', // Fixed: removed /public
 	},

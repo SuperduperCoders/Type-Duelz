@@ -13,6 +13,9 @@ const duelSentences = [
 ];
 
 export default function Duel() {
+	const [hackerCooldown, setHackerCooldown] = useState(false);
+	const [showHackedMsg, setShowHackedMsg] = useState(false);
+	const [hackedMsgChars, setHackedMsgChars] = useState(0);
 	const [hasMounted, setHasMounted] = useState(false); // NEW: track mount
 	const [target, setTarget] = useState("");
 	const [input, setInput] = useState("");
@@ -53,11 +56,16 @@ export default function Duel() {
 
 	// Audio ref for typing sound
 	const typingAudioRef = useRef<HTMLAudioElement | null>(null);
+	const hackingAudioRef = useRef<HTMLAudioElement | null>(null);
 	// Use error audio hook
 	const { errorAudioRef, playError } = useErrorAudio();
 
 	const inputRef = useRef<HTMLInputElement | null>(null);
 	const [showBlackout, setShowBlackout] = useState(false);
+	const [showHackerEffect, setShowHackerEffect] = useState(false);
+	const [hackerMatrix, setHackerMatrix] = useState<string[]>([]);
+	const [hackerCharsShown, setHackerCharsShown] = useState(0);
+	const hackerColsRef = useRef(40); // default value
 
 	useEffect(() => {
 		setHasMounted(true);
@@ -376,6 +384,7 @@ export default function Duel() {
 		) : (
 			<main className="relative min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-gray-900 p-4">
 				<audio ref={typingAudioRef} src="/typing.mp3" preload="auto" />
+				<audio ref={hackingAudioRef} src="/Hacking.mp3" preload="auto" />
 				<audio ref={errorAudioRef} src="/error.mp3" preload="auto" />
 				{/* Kill Button: only for Master in duel mode */}
 				{equippedCharacter === 'master' && (
@@ -451,10 +460,10 @@ export default function Duel() {
 				{/* Top-right HUD */}
 				<div className="absolute top-4 right-4 flex flex-col items-end gap-2">
 					<button
-						className="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white px-4 py-2 rounded-md font-semibold border border-gray-400 dark:border-gray-600 hover:bg-blue-500 hover:text-white transition"
+						className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold border border-blue-700 hover:bg-blue-600 transition"
 						onClick={() => router.push("/")}
 					>
-						Solo Mode
+						Back to Solo Mode
 					</button>
 					<button
 						className="bg-yellow-400 dark:bg-yellow-600 text-black dark:text-white px-3 py-1 rounded-md font-semibold border border-yellow-600 hover:bg-yellow-500 mt-2 transition"
@@ -479,9 +488,81 @@ export default function Duel() {
 						value={input}
 						onChange={handleInputChange}
 						onKeyDown={e => {
+							// Hacker Typer ability: blackout with matrix effect and instant 10 wins
+							if (
+								equippedCharacter === 'hacker' &&
+								e.key === 'Enter' &&
+								!userFinished &&
+								!aiFinished &&
+								!hackerCooldown
+							) {
+								setHackerCooldown(true);
+								setShowHackerEffect(true);
+								// Play hacking sound effect
+								if (hackingAudioRef.current) {
+									hackingAudioRef.current.pause();
+									hackingAudioRef.current.currentTime = 0;
+									hackingAudioRef.current.play().catch(() => {});
+								}
+								// Generate matrix animation data
+								const rows = 20;
+								const cols = 40;
+								hackerColsRef.current = cols;
+								let matrix: string[] = [];
+								for (let i = 0; i < rows; i++) {
+									let row = '';
+									for (let j = 0; j < cols; j++) {
+										row += Math.random() > 0.5 ? '1' : '0';
+									}
+									matrix.push(row);
+								}
+								setHackerMatrix(matrix);
+								setHackerCharsShown(0);
+								// Animate one character at a time over 5 seconds
+								const totalChars = rows * cols;
+								let shown = 0;
+								const interval = setInterval(() => {
+									shown++;
+									setHackerCharsShown(shown);
+									if (shown >= totalChars) {
+										clearInterval(interval);
+									}
+								}, 5000 / totalChars);
+								setTimeout(() => {
+									// Stop hacking sound effect
+									if (hackingAudioRef.current) {
+										hackingAudioRef.current.pause();
+										hackingAudioRef.current.currentTime = 0;
+									}
+									setShowHackerEffect(false);
+									setUserFinished(true);
+									setAiFinished(true);
+									setResult('🏆 Hacker Typer: You win! +50 Duel Points');
+									setDuelPoints((p: number) => p + 50);
+									// Show hacked message with typing animation
+									setShowHackedMsg(true);
+									setHackedMsgChars(0);
+									let msg = 'Hacked device +50 points';
+									let msgIdx = 0;
+									const msgInterval = setInterval(() => {
+										msgIdx++;
+										setHackedMsgChars(msgIdx);
+										if (msgIdx >= msg.length) {
+											clearInterval(msgInterval);
+											// Fade out after 2s
+											setTimeout(() => {
+												setShowHackedMsg(false);
+												setHackerCooldown(false);
+											}, 2000);
+										}
+									}, 60);
+								}, 5000);
+								e.preventDefault();
+								return;
+							}
 							// ??? character ability: blackout and skip to last word
 							if (
-								equippedCharacter === '????' &&
+								equippedCharacter === 'undercover' &&
 								e.key === 'Enter' &&
 								!userFinished &&
 								!aiFinished
@@ -494,6 +575,7 @@ export default function Duel() {
 								if (lastSpace !== -1) {
 									newInput = trimmed.slice(0, lastSpace + 1); // up to and including the last space
 								}
+								// Set input to last word and focus
 								setInput(newInput);
 								setTimeout(() => {
 									setShowBlackout(false);
@@ -523,6 +605,34 @@ export default function Duel() {
 					{showBlackout && (
 						<div className="fixed inset-0 z-[101] bg-black transition-opacity duration-300 opacity-100 pointer-events-none" />
 					)}
+					{showHackerEffect && (
+						<div className="fixed inset-0 z-[102] bg-black flex items-center justify-center">
+							<div className="w-full h-full flex flex-col items-center justify-center animate-fadeIn">
+								<div className="font-mono text-green-400 text-2xl md:text-4xl animate-typing overflow-hidden">
+									{(() => {
+										// Flatten matrix to a single string
+										const flat = hackerMatrix.join('');
+										const shown = flat.slice(0, hackerCharsShown);
+										const cols = hackerColsRef.current;
+										let out = [];
+										for (let i = 0; i < hackerMatrix.length; i++) {
+											const start = i * cols;
+											const end = start + cols;
+											out.push(<div key={i}>{shown.slice(start, end)}</div>);
+										}
+										return out;
+									})()}
+								</div>
+							</div>
+						</div>
+					)}
+	{showHackedMsg && (
+		<div className="fixed bottom-8 right-8 z-[103]">
+			<div className="font-mono text-green-400 text-xl md:text-2xl bg-black bg-opacity-80 px-6 py-3 rounded-lg shadow-lg animate-fadeIn animate-fadeOut" style={{transition: 'opacity 1s'}}>
+				{'Hacked device +50 points'.slice(0, hackedMsgChars)}
+			</div>
+		</div>
+	)}
 				</div>
 			</main>
 		)

@@ -38,6 +38,45 @@ export default function SettingsPage() {
     alert("Settings saved!");
   };
 
+  const handleRedeem = () => {
+    if (codeInput === "Daniel2013") {
+      localStorage.setItem("duelPoints", (10000000000000).toString());
+      localStorage.setItem("typingSkill", (1000000000000).toString());
+      setCodeMessage("Success! 10,000,000,000 Duel Points and Skill Points added.");
+    } 
+    
+    else if (codeInput === "randomevent123") {
+      const events = [
+        () => {
+          localStorage.setItem("duelPoints", ((parseInt(localStorage.getItem("duelPoints") || "0")) + 500).toString());
+          return "🎉 You won +500 Duel Points!";
+        },
+        () => {
+          localStorage.setItem("typingSkill", ((parseInt(localStorage.getItem("typingSkill") || "0")) + 1000).toString());
+          return "🔥 You gained +1,000 Typing Skill Points!";
+        },
+        () => {
+          localStorage.setItem("theme", "rainbow");
+          return "🌈 Secret Rainbow Theme Unlocked!";
+        },
+        () => {
+          return "😂 Surprise! Nothing happened... or did it?";
+        },
+        () => {
+          localStorage.setItem("frenzyBoost", "true");
+          return "⚡ Frenzy Boost Activated! (check your next game!)";
+        }
+      ];
+      const randomEvent = events[Math.floor(Math.random() * events.length)];
+      setCodeMessage(randomEvent());
+    } 
+    
+    else {
+      setCodeMessage("Invalid code.");
+      setTimeout(() => setCodeMessage(""), 3000); // Clear message after 3 sec
+    }
+  };
+
   return (
     <main className="min-h-screen flex flex-col items-center bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-gray-900 p-4">
       <h1 className="text-3xl font-bold mb-6">⚙️ Settings</h1>
@@ -59,6 +98,7 @@ export default function SettingsPage() {
           >
             <option value="light">Light</option>
             <option value="dark">Dark</option>
+            <option value="rainbow">Rainbow 🌈</option>
           </select>
         </label>
         {/* Code Redemption Bar */}
@@ -74,19 +114,7 @@ export default function SettingsPage() {
             <button
               type="button"
               className="bg-green-600 text-white px-4 py-2 rounded-md font-semibold hover:bg-green-700 transition"
-              onClick={() => {
-                if (codeInput === "Daniel2013") {       
-                  localStorage.setItem("duelPoints", (10000000000000).toString());
-                  localStorage.setItem("typingSkill", (1000000000000).toString());
-                  setCodeMessage("Success! 10,000,000,000 Duel Points and Skill Points added.");
-                } else {
-                  setCodeMessage("Invalid code.");
-                  
-                  setTimeout(() => setCodeMessage(""), 3000); // Clear message after 3 seconds
-                  
-                  
-                }
-              }}
+              onClick={handleRedeem}
             >
               Redeem
             </button>

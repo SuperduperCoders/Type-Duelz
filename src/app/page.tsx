@@ -833,26 +833,26 @@ export default function Home() {
   <p className="text-gray-600 text-sm">
     🧠 Skill Level: <span className="font-bold">{skill}</span>
   </p>
-  <p className="text-gray-600 text-sm">
-    🏅 Top WPM: <span className="font-bold">{wpmHistory.length > 0 ? Math.max(...wpmHistory) : 0}</span>
-  </p>
+  {/* Top WPM moved to floating bottom left */}
   <p className="text-gray-600 text-sm">
     🏆 Current Goal: <span className="font-bold">{currentGoal} W</span>
   </p>
-  
-  <div className="flex flex-row justify-center gap-4 mt-4">
-    <button
-      className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold border border-blue-700 hover:bg-blue-600 transition"
-      onClick={() => { playClick(); generateSentence(); }}
-    >
-      New Sentence
-    </button>
-  </div>
 </div>
 
 {/* Average Accuracy Floating Corner */}
+<div className="fixed bottom-4 left-4 z-50 bg-white/90 border border-gray-300 rounded-xl px-5 py-3 shadow-lg text-left">
+  <div className="text-xs text-gray-500 font-semibold mb-1">Top WPM</div>
+  <div className="text-lg font-bold text-purple-700">
+    {wpmHistory.length > 0 ? Math.max(...wpmHistory) : 0}
+  </div>
+</div>
+
 <div className="fixed bottom-4 right-4 z-50 bg-white/90 border border-gray-300 rounded-xl px-5 py-3 shadow-lg text-right">
-  <div className="text-xs text-gray-500 font-semibold mb-1">Avg. Accuracy</div>
+  <div className="text-xs text-gray-500 font-semibold mb-1">Avg. WPM</div>
+  <div className="text-lg font-bold text-green-700">
+    {wpmHistory.length > 0 ? Math.round(wpmHistory.reduce((a, b) => a + b, 0) / wpmHistory.length) : 'N/A'}
+  </div>
+  <div className="text-xs text-gray-500 font-semibold mb-1 mt-2">Avg. Accuracy</div>
   <div className="text-lg font-bold text-blue-700">
     {wpmHistory.length > 0 ? `${Math.round(accuracy)}%` : 'N/A'}
   </div>

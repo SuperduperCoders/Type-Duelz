@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AuthProvider } from "./AuthProvider";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import BackgroundMusic from "./BackgroundMusic";
 import { Analytics } from "@vercel/analytics/react";
 // Load Google Fonts
 const geistSans = Geist({
@@ -66,6 +67,8 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
+          {/* Background music: Infinite Typing Flow */}
+          <BackgroundMusic />
           {children}
         </body>
       </html>
