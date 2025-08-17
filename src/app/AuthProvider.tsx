@@ -1,12 +1,8 @@
 import React from "react";
-import { ClerkProvider, useAuth, useUser } from '@clerk/nextjs';
+// ...removed ClerkProvider, useAuth, useUser imports...
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-	return <ClerkProvider>{children}</ClerkProvider>;
+		return <>{children}</>;
 };
 
-export function useUserAuth() {
-	const { isSignedIn } = useAuth();
-	const { user } = useUser();
-	return { isSignedIn, user };
-}
+// ...removed Clerk-related hooks and logic...

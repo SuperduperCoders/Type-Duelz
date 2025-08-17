@@ -5,7 +5,7 @@ import { type Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import BackgroundMusic from './BackgroundMusic';
-import { ClerkProvider } from '@clerk/nextjs';
+// ...removed ClerkProvider import...
 import { XPProvider } from './XPProvider';
 
 // Load Google Fonts
@@ -27,27 +27,30 @@ export const metadata: Metadata = {
   
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <head>
-          <link rel="icon" href="/favicon.ico" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <meta name="theme-color" content="#000000" />
-          <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        </head>
-        <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-          <BackgroundMusic />
-          {/* XPProvider wraps the app for XP state */}
-          <XPProvider>
-            {/* XPBar shows XP and level, positioned center-left */}
-            <XPBar />
-            {children}
-          </XPProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+    <html lang="en">
+      <head>
+        <link rel="icon" href="/favicon.ico" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#000000" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <BackgroundMusic />
+        {/* XPProvider wraps the app for XP state */}
+        <XPProvider>
+          {/* XPBar shows XP and level, positioned center-left */}
+          <XPBar />
+          {children}
+        </XPProvider>
+      </body>
+    </html>
   );
 }
+
