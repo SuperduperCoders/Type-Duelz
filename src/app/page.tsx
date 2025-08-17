@@ -632,7 +632,7 @@ export default function Home() {
 
   // Main UI when loaded
   return (
-    <main className={`relative min-h-screen flex flex-col items-stretch p-0 ${theme === 'dark' ? 'bg-black' : 'bg-gradient-to-br from-white to-slate-100'}`}>
+  <main className={`relative min-h-screen flex flex-col items-stretch p-0 ${theme === 'rainbow' ? 'rainbow-theme' : theme === 'dark' ? 'bg-black' : 'bg-gradient-to-br from-white to-slate-100'}`}>
       {/* Click and typing audio */}
       <audio ref={typingAudioRef} src="/typing.mp3" preload="auto" />
       <audio ref={errorAudioRef} src="/error.mp3" preload="auto" />
@@ -649,13 +649,13 @@ export default function Home() {
               alt="TypeDuels Logo"
               className="animate-spin-slow mb-4"
             />
-            <div className="text-white text-3xl font-bold animate-pulse">Loading...</div>
+            <div className={`text-3xl font-bold animate-pulse ${theme === 'rainbow' ? 'rainbow-text' : 'text-white'}`}>Loading...</div>
           </div>
         </div>
       )}
 
       {/* Top navigation buttons - stick to top */}
-      <div className="fixed top-0 left-0 w-full flex flex-row justify-end gap-2 p-4 bg-white/80 dark:bg-gray-900/80 z-50 shadow-md">
+  <div className={`fixed top-0 left-0 w-full flex flex-row justify-end gap-2 p-4 ${theme === 'rainbow' ? 'bg-white/80 rainbow-theme' : 'bg-white/80 dark:bg-gray-900/80'} z-50 shadow-md`}>
         {/* Fancy Theme Switch */}
         <button
           className={`relative w-16 h-9 flex items-center rounded-full border-2 transition-colors duration-300 focus:outline-none ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-400'}`}

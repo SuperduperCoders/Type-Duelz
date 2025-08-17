@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
+import { useXP } from "../XPProvider";
 import { useRouter } from "next/navigation";
 import { useErrorAudio } from "../../hooks/useErrorAudio";
 
@@ -13,6 +14,7 @@ const duelSentences = [
 ];
 
 export default function Duel() {
+	const { addXP } = useXP();
 	const [hackerCooldown, setHackerCooldown] = useState(false);
 	const [showHackedMsg, setShowHackedMsg] = useState(false);
 	const [hackedMsgChars, setHackedMsgChars] = useState(0);
@@ -265,20 +267,24 @@ export default function Duel() {
 				console.log('Typing audio play failed (duel):', e);
 			});
 		}
-		if (newVal.length === target.length) {
-			setUserFinished(true);
-			const endTime = Date.now();
-			const durationInMinutes = (endTime - (startTime ?? endTime)) / 60000;
-			const wordCount = target.trim().split(/\s+/).length;
-			const calculatedWpm = Math.round(wordCount / durationInMinutes);
-			setWpmHistory((prev: number[]) => [...prev, calculatedWpm]);
-			if (!aiFinished) {
-				setDuelPoints((p: number) => p + 5);
-				setResult("\ud83c\udfc6 You win! +5 Duel Points");
-			} else {
-				setResult(`\u274c ${opponentName} wins! Try again.`);
+			if (newVal.length === target.length) {
+				setUserFinished(true);
+				const endTime = Date.now();
+				const durationInMinutes = (endTime - (startTime ?? endTime)) / 60000;
+				const wordCount = target.trim().split(/\s+/).length;
+				const calculatedWpm = Math.round(wordCount / durationInMinutes);
+				setWpmHistory((prev: number[]) => [...prev, calculatedWpm]);
+				// XP gain for typing a sentence
+				addXP(20); // 20 XP per sentence
+				if (!aiFinished) {
+					setDuelPoints((p: number) => p + 5);
+					setResult("\ud83c\udfc6 You win! +5 Duel Points");
+					// XP gain for winning a duel
+					addXP(40); // 40 XP for win
+				} else {
+					setResult(`\u274c ${opponentName} wins! Try again.`);
+				}
 			}
-		}
 	};
 
 	const handleAccountSubmit = (e: React.FormEvent) => {
@@ -373,6 +379,7 @@ export default function Duel() {
 		setShowKillMsg('Kill used! You win instantly.');
 		setResult('🏆 You win! +5 Duel Points');
 		setDuelPoints((p: number) => p + 5);
+		addXP(40); // XP for instant win
 		setTimeout(() => setShowKillMsg(''), 2000);
 	};
 

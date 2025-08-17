@@ -1,0 +1,48 @@
+.xpBarContainer {
+  position: fixed;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1000;
+  width: 220px;
+  background: rgba(30, 30, 40, 0.85);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.level {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #ffd700;
+  margin-bottom: 8px;
+}
+
+.xpBarBg {
+  width: 180px;
+  height: 24px;
+  background: #222;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+
+.xpBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, #4e9cff, #00e0ff);
+  transition: width 0.7s cubic-bezier(.4,2,.3,1);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  border-radius: 12px;
+}
+
+.xpText {
+  font-size: 0.95rem;
+  color: #fff;
+  padding-right: 10px;
+  font-weight: 500;
+}

@@ -1,3 +1,29 @@
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
+/* Rainbow theme styles */
+.rainbow-theme {
+	background: linear-gradient(135deg, #ff0000 0%, #ff9900 20%, #ffee00 40%, #33ff00 60%, #00ccff 80%, #9900ff 100%);
+	background-size: 400% 400%;
+	animation: rainbowBG 10s ease infinite;
+}
+
+@keyframes rainbowBG {
+	0% {background-position: 0% 50%;}
+	50% {background-position: 100% 50%;}
+	100% {background-position: 0% 50%;}
+}
+
+.rainbow-text {
+	background: linear-gradient(90deg, #ff0000, #ff9900, #ffee00, #33ff00, #00ccff, #9900ff);
+	background-clip: text;
+	-webkit-background-clip: text;
+	color: transparent;
+	-webkit-text-fill-color: transparent;
+	animation: rainbowText 2s linear infinite;
+}
+
+@keyframes rainbowText {
+	0% {background-position: 0% 50%;}
+	100% {background-position: 100% 50%;}
+}

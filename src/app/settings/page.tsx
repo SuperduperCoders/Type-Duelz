@@ -78,8 +78,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-gray-900 p-4">
-      <h1 className="text-3xl font-bold mb-6">⚙️ Settings</h1>
+  <main className={`min-h-screen flex flex-col items-center p-4 ${theme === 'rainbow' ? 'rainbow-theme' : 'bg-gradient-to-br from-white to-slate-100 dark:from-black dark:to-gray-900'}` }>
+  <h1 className={`text-3xl font-bold mb-6 ${theme === 'rainbow' ? 'rainbow-text' : ''}`}>⚙️ Settings</h1>
       <form onSubmit={handleSave} className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px] max-w-md w-full">
         <label className="font-semibold">In-Game Name
           <input
@@ -90,7 +90,7 @@ export default function SettingsPage() {
             required
           />
         </label>
-        <label className="font-semibold">Theme
+  <label className="font-semibold">Theme
           <select
             value={theme}
             onChange={e => setTheme(e.target.value)}
@@ -125,7 +125,7 @@ export default function SettingsPage() {
       </form>
       <div className="mt-8 text-lg text-center">
         <div className="mb-2">Average Accuracy:</div>
-        <div className="text-2xl font-bold">
+        <div className={`text-2xl font-bold ${theme === 'rainbow' ? 'rainbow-text' : ''}` }>
           {averageAccuracy !== null ? `${averageAccuracy}%` : "No data yet"}
         </div>
       </div>
