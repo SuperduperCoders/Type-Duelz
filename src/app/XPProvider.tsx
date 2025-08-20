@@ -6,14 +6,33 @@ interface XPContextType {
   level: number;
   addXP: (amount: number) => void;
   resetXP: () => void;
+  setLevel: (lvl: number) => void;
 }
 
 const XPContext = createContext<XPContextType | undefined>(undefined);
 
 export const XPProvider = ({ children }: { children: React.ReactNode }) => {
-  const [xp, setXP] = useState(0);
-  const [level, setLevel] = useState(1);
+  const [xp, setXP] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return parseInt(localStorage.getItem('xp') || '0', 10);
+    }
+    return 0;
+  });
+  const [level, setLevel] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return parseInt(localStorage.getItem('level') || '1', 10);
+    }
+    return 1;
+  });
   const XP_PER_LEVEL = 100;
+
+  // Save XP and level to localStorage whenever they change
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('xp', xp.toString());
+      localStorage.setItem('level', level.toString());
+    }
+  }, [xp, level]);
 
   const addXP = (amount: number) => {
     setXP(prevXP => {
@@ -29,8 +48,15 @@ export const XPProvider = ({ children }: { children: React.ReactNode }) => {
 
   const resetXP = () => setXP(0);
 
+  const setLevelDirect = (lvl: number) => {
+    setLevel(lvl);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('level', lvl.toString());
+    }
+  };
+
   return (
-    <XPContext.Provider value={{ xp, level, addXP, resetXP }}>
+    <XPContext.Provider value={{ xp, level, addXP, resetXP, setLevel: setLevelDirect }}>
       {children}
     </XPContext.Provider>
   );

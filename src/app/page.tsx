@@ -6,7 +6,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useErrorAudio } from "../hooks/useErrorAudio";
 import Image from 'next/image';
-
+import { UserButton, SignedIn, SignOutButton } from '@clerk/nextjs';
 
 
 
@@ -655,32 +655,16 @@ export default function Home() {
       )}
 
       {/* Top navigation buttons - stick to top */}
-  <div className={`fixed top-0 left-0 w-full flex flex-row justify-end gap-2 p-4 ${theme === 'rainbow' ? 'bg-white/80 rainbow-theme' : 'bg-white/80 dark:bg-gray-900/80'} z-50 shadow-md`}>
-        {/* Fancy Theme Switch */}
-        <button
-          className={`relative w-16 h-9 flex items-center rounded-full border-2 transition-colors duration-300 focus:outline-none ${theme === 'dark' ? 'bg-gray-800 border-gray-700' : 'bg-gray-200 border-gray-400'}`}
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          aria-label="Toggle dark/light mode"
-        >
-          <span className={`absolute left-2 text-xl transition-opacity duration-300 ${theme === 'dark' ? 'opacity-0' : 'opacity-100'}`}>☀️</span>
-          <span className={`absolute right-2 text-xl transition-opacity duration-300 ${theme === 'dark' ? 'opacity-100' : 'opacity-0'}`}>🌙</span>
-          <span
-            className={`absolute top-1/2 transform -translate-y-1/2 left-1 transition-all duration-300 w-7 h-7 rounded-full shadow-md ${theme === 'dark' ? 'bg-gray-900 translate-x-7' : 'bg-white translate-x-0'}`}
-          />
-        </button>
-        <button
-          className="bg-gray-200 text-gray-800 px-4 py-2 rounded-md font-semibold border border-gray-400 hover:bg-blue-500 hover:text-white transition"
-          onClick={() => { playClick(); window.location.href = '/duel'; }}
-        >
-          Duel Mode
-        </button>
+      <div className={`fixed top-0 left-0 w-full flex flex-row justify-end gap-2 p-4 ${theme === 'rainbow' ? 'bg-white/80 rainbow-theme' : 'bg-white/80 dark:bg-gray-900/80'} z-50 shadow-md`}>
+        <div className="flex flex-col items-end mr-2">
+          <span className="bg-blue-200 text-blue-800 px-4 py-1 rounded font-bold text-md mb-1 shadow">Duel Points: {duelPoints}</span>
+        </div>
         <button
           className="bg-green-500 text-white px-4 py-2 rounded-md font-semibold border border-green-700 hover:bg-green-600 transition"
           onClick={() => { playClick(); window.location.href = '/subscriptions'; }}
         >
           Subscriptions
         </button>
-      {/* Edit Account button removed */}
         <button
           className="bg-purple-500 text-white px-4 py-2 rounded-md font-semibold border border-purple-700 hover:bg-purple-600 transition"
           onClick={() => { playClick(); window.location.href = '/characters'; }}
@@ -695,12 +679,6 @@ export default function Home() {
         </button>
       </div>
       <div className="h-20" /> {/* Spacer for fixed nav */}
-
-      {/* Duel Points Display */}
-      <div className="fixed top-4 left-4 z-50 bg-white/90 border border-gray-300 rounded-xl px-5 py-3 shadow-lg text-left">
-        <div className="text-xs text-gray-500 font-semibold mb-1">Duel Points</div>
-        <div className="text-lg font-bold text-purple-700">{duelPoints}</div>
-      </div>
 
       {/* Difficulty Panel */}
       <div className="flex justify-center mb-8">
@@ -849,6 +827,7 @@ export default function Home() {
 
 <div className="fixed bottom-4 right-4 z-50 bg-white/90 border border-gray-300 rounded-xl px-5 py-3 shadow-lg text-right">
   <div className="text-xs text-gray-500 font-semibold mb-1">Avg. WPM</div>
+  <UserButton showName />
   <div className="text-lg font-bold text-green-700">
     {wpmHistory.length > 0 ? Math.round(wpmHistory.reduce((a, b) => a + b, 0) / wpmHistory.length) : 'N/A'}
   </div>

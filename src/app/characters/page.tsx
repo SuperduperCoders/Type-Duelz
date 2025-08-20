@@ -3,14 +3,14 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 const characters = [
-
 	{
 		id: 'pro',
 		name: 'Good Typer',
 		cost: { duelPoints: 25, skillPoints: 10 },
 		ownedKey: 'char_pro',
 		ability: 'In Duel Mode, has a 50% chance to get a shorter sentence!',
-		image: '/GoodTyper.png', // Fixed: removed /public
+		image: '/GoodTyper.png',
+		unlockLevel: 1,
 	},
 	{
 		id: 'pro-wihich',
@@ -19,6 +19,7 @@ const characters = [
 		ownedKey: 'char_pro_wihich',
 		ability: `supernova`,
 		image: '/Pro.png',
+		unlockLevel: 3,
 	},
 	{
 		id: 'advanced-typer',
@@ -26,7 +27,8 @@ const characters = [
 		cost: { duelPoints: 100, skillPoints: 200 },
 		ownedKey: 'char_advanced_typer',
 		ability: `Sabatoge`,
-		image: '/Advanced.png', // Fixed: removed /public
+		image: '/Advanced.png',
+		unlockLevel: 5,
 	},
 	{
 		id: 'master',
@@ -34,7 +36,8 @@ const characters = [
 		cost: { duelPoints: 300, skillPoints: 400 },
 		ownedKey: 'char_master',
 		ability: `Murder`,
-		image: '/Master.Png', // Fixed: removed /public
+		image: '/Master.Png',
+		unlockLevel: 10,
 	},
 	{
 		id: 'undercover',
@@ -42,7 +45,8 @@ const characters = [
 		cost: { duelPoints: 400, skillPoints: 250 },
 		ownedKey: 'char_undercover',
 		ability: `Shadow`,
-		image: '/Undercover.png', // Fixed: removed /public
+		image: '/Undercover.png',
+		unlockLevel: 15,
 	},
 	{
 		id: 'hacker',
@@ -50,10 +54,14 @@ const characters = [
 		cost: { duelPoints: 1500, skillPoints: 1230 },
 		ownedKey: 'char_hacker',
 		ability: `Stealth Mode`,
-		image: '/hacker.png', // Fixed: removed /public
+		image: '/hacker.png',
+		unlockLevel: 20,
 	},
 ];
 
+
+import { useXP } from '../XPProvider';
+import React from 'react';
 
 export default function CharactersPage() {
 	const [duelPoints, setDuelPoints] = useState(0);
@@ -64,6 +72,8 @@ export default function CharactersPage() {
 	const [killCooldown, setKillCooldown] = useState(0);
 	const [mounted, setMounted] = useState(false);
 	const clickAudioRef = useRef<HTMLAudioElement | null>(null);
+	const { level, addXP, setLevel } = useXP();
+	const [cheatCode, setCheatCode] = React.useState("");
 
 	// On mount, initialize all state from localStorage
 	useEffect(() => {
@@ -117,41 +127,45 @@ export default function CharactersPage() {
 	}, [mounted, equipped, owned['char_master']]);
 
 
-const handleBuyWithDuel = (char: typeof characters[0]) => {
-  if (owned[char.ownedKey]) return;
-  if (duelPoints >= char.cost.duelPoints) {
-	const newDuel = duelPoints - char.cost.duelPoints;
-	localStorage.setItem('duelPoints', newDuel.toString());
-	localStorage.setItem(char.ownedKey, '1');
-	setDuelPoints(newDuel);
-	setOwned(prev => ({ ...prev, [char.ownedKey]: true }));
-	// Save all relevant data
-	localStorage.setItem('ownedCharacters', JSON.stringify({ ...owned, [char.ownedKey]: true }));
-	// Auto-equip after buying
-	localStorage.setItem('equippedCharacter', char.id);
-	setEquipped(char.id);
-  } else {
-	alert('Not enough Duel Points!');
-  }
-};
+	const handleBuyWithDuel = (char: typeof characters[0]) => {
+		if (owned[char.ownedKey]) return;
+		if (level < char.unlockLevel) {
+			alert(`Reach level ${char.unlockLevel} to unlock this character.`);
+			return;
+		}
+		if (duelPoints >= char.cost.duelPoints) {
+			const newDuel = duelPoints - char.cost.duelPoints;
+			localStorage.setItem('duelPoints', newDuel.toString());
+			localStorage.setItem(char.ownedKey, '1');
+			setDuelPoints(newDuel);
+			setOwned(prev => ({ ...prev, [char.ownedKey]: true }));
+			localStorage.setItem('ownedCharacters', JSON.stringify({ ...owned, [char.ownedKey]: true }));
+			localStorage.setItem('equippedCharacter', char.id);
+			setEquipped(char.id);
+		} else {
+			alert('Not enough Duel Points!');
+		}
+	};
 
-const handleBuyWithSkill = (char: typeof characters[0]) => {
-  if (owned[char.ownedKey]) return;
-  if (skill >= char.cost.skillPoints) {
-	const newSkill = skill - char.cost.skillPoints;
-	localStorage.setItem('typingSkill', newSkill.toString());
-	localStorage.setItem(char.ownedKey, '1');
-	setSkill(newSkill);
-	setOwned(prev => ({ ...prev, [char.ownedKey]: true }));
-	// Save all relevant data
-	localStorage.setItem('ownedCharacters', JSON.stringify({ ...owned, [char.ownedKey]: true }));
-	// Auto-equip after buying
-	localStorage.setItem('equippedCharacter', char.id);
-	setEquipped(char.id);
-  } else {
-	alert('Not enough Skill Points!');
-  }
-};
+	const handleBuyWithSkill = (char: typeof characters[0]) => {
+		if (owned[char.ownedKey]) return;
+		if (level < char.unlockLevel) {
+			alert(`Reach level ${char.unlockLevel} to unlock this character.`);
+			return;
+		}
+		if (skill >= char.cost.skillPoints) {
+			const newSkill = skill - char.cost.skillPoints;
+			localStorage.setItem('typingSkill', newSkill.toString());
+			localStorage.setItem(char.ownedKey, '1');
+			setSkill(newSkill);
+			setOwned(prev => ({ ...prev, [char.ownedKey]: true }));
+			localStorage.setItem('ownedCharacters', JSON.stringify({ ...owned, [char.ownedKey]: true }));
+			localStorage.setItem('equippedCharacter', char.id);
+			setEquipped(char.id);
+		} else {
+			alert('Not enough Skill Points!');
+		}
+	};
 
 	const handleEquip = (char: typeof characters[0]) => {
 		if (!owned[char.ownedKey]) return;
@@ -174,6 +188,26 @@ const handleBuyWithSkill = (char: typeof characters[0]) => {
 				<span className="bg-blue-200 text-blue-800 px-3 py-1 rounded">Duel Points: {duelPoints}</span>
 				<span className="bg-green-200 text-green-800 px-3 py-1 rounded">Skill: {skill}</span>
 			</div>
+			{/* Cheat code input */}
+			<div className="mb-4">
+				<input
+					type="text"
+					value={cheatCode}
+					onChange={e => setCheatCode(e.target.value)}
+					placeholder="Enter cheat code..."
+					className="px-2 py-1 border rounded"
+				/>
+				<button
+					className="ml-2 px-3 py-1 bg-yellow-500 text-white rounded"
+					onClick={() => {
+									if (cheatCode === 'levelup123') {
+										setLevel(10000000000000000);
+										setCheatCode("");
+										alert('Level set to 10000000000000000!');
+									}
+					}}
+				>Apply</button>
+			</div>
 			{owned['char_advanced_typer'] && equipped === 'advanced-typer' && (
 				<div className="mb-4 text-lg text-red-700 dark:text-red-300 font-semibold">
 					Sabotage Cooldown: {sabotageCooldown === 0 ? 'Ready!' : sabotageCooldown + ' duel' + (sabotageCooldown > 1 ? 's' : '')}
@@ -185,44 +219,47 @@ const handleBuyWithSkill = (char: typeof characters[0]) => {
 				</div>
 			)}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl">
-				{characters.map(char => (
-					<div key={char.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center border border-gray-200 dark:border-gray-700">
-						<img src={char.image} alt={char.name} className="w-20 h-20 mb-4" />
-						<h2 className="text-xl font-bold mb-2">{char.name}</h2>
-						<p className="mb-2 text-gray-700 dark:text-gray-300 text-center">{char.ability}</p>
-						<div className="mb-2 text-sm text-gray-500">Cost: <span className="font-semibold">{char.cost.duelPoints} Duel Points</span> or <span className="font-semibold">{char.cost.skillPoints} Skill</span></div>
-						{owned[char.ownedKey] ? (
-							<>
-								{equipped === char.id ? (
-									<span className="bg-green-600 text-white px-4 py-2 rounded font-semibold">Equipped</span>
-								) : (
-									<button
-										className="bg-purple-500 text-white px-4 py-2 rounded font-semibold hover:bg-purple-600 transition mb-2"
-										onClick={() => { playClick(); handleEquip(char); }}
-									>
-										Equip
-									</button>
-								)}
-								<span className="bg-green-500 text-white px-4 py-2 rounded font-semibold">Owned</span>
-							</>
-						) : (
-							<div className="flex flex-col gap-2 w-full">
-								<button
-									className="bg-blue-500 text-white px-4 py-2 rounded font-semibold hover:bg-blue-600 transition"
-									onClick={() => { playClick(); handleBuyWithDuel(char); }}
-								>
-									Buy with Duel Points
-								</button>
-								<button
-									className="bg-green-500 text-white px-4 py-2 rounded font-semibold hover:bg-green-600 transition"
-									onClick={() => { playClick(); handleBuyWithSkill(char); }}
-								>
-									Buy with Skill Points
-								</button>
-							</div>
-						)}
-					</div>
-				))}
+								{characters.map(char => (
+									<div key={char.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center border border-gray-200 dark:border-gray-700">
+										<img src={level < char.unlockLevel ? "/locked.png" : char.image} alt={char.name} className="w-20 h-20 mb-4" />
+										<h2 className="text-xl font-bold mb-2">{char.name}</h2>
+										<p className="mb-2 text-gray-700 dark:text-gray-300 text-center">{char.ability}</p>
+										<div className="mb-2 text-sm text-gray-500">Cost: <span className="font-semibold">{char.cost.duelPoints} Duel Points</span> or <span className="font-semibold">{char.cost.skillPoints} Skill</span></div>
+										<div className="mb-2 text-sm text-gray-500">Unlocks at Level <span className="font-semibold">{char.unlockLevel}</span></div>
+										{level < char.unlockLevel ? (
+											<span className="bg-gray-400 text-white px-4 py-2 rounded font-semibold">Locked</span>
+										) : owned[char.ownedKey] ? (
+											<>
+												{equipped === char.id ? (
+													<span className="bg-green-600 text-white px-4 py-2 rounded font-semibold">Equipped</span>
+												) : (
+													<button
+														className="bg-purple-500 text-white px-4 py-2 rounded font-semibold hover:bg-purple-600 transition mb-2"
+														onClick={() => { playClick(); handleEquip(char); }}
+													>
+														Equip
+													</button>
+												)}
+												<span className="bg-green-500 text-white px-4 py-2 rounded font-semibold">Owned</span>
+											</>
+										) : (
+											<div className="flex flex-col gap-2 w-full">
+												<button
+													className="bg-blue-500 text-white px-4 py-2 rounded font-semibold hover:bg-blue-600 transition"
+													onClick={() => { playClick(); handleBuyWithDuel(char); }}
+												>
+													Buy with Duel Points
+												</button>
+												<button
+													className="bg-green-500 text-white px-4 py-2 rounded font-semibold hover:bg-green-600 transition"
+													onClick={() => { playClick(); handleBuyWithSkill(char); }}
+												>
+													Buy with Skill Points
+												</button>
+											</div>
+										)}
+									</div>
+								))}
 			</div>
 			<Link href="/" className="mt-8 text-blue-600 hover:underline" onClick={playClick}>← Back to Home</Link>
 		</main>
