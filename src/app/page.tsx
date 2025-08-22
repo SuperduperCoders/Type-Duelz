@@ -1,6 +1,6 @@
-// Solo mode page moved to /dashboard
 
 'use client';
+// Solo mode page moved to /dashboard
 
 
 import { useEffect, useState, useRef } from 'react';
