@@ -1,17 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useEffect } from "react";
+import { useMusic } from "./MusicProvider";
 
 export default function BackgroundMusic() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const [muted, setMuted] = useState(false);
+  const { muted, toggleMute } = useMusic();
 
-  const toggleMute = () => {
-    setMuted((m) => {
-      if (audioRef.current) audioRef.current.muted = !m;
-      return !m;
-    });
-  };
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = muted;
+    }
+  }, [muted]);
 
   return (
     <>

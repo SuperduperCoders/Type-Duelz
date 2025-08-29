@@ -130,6 +130,20 @@ export default function SettingsPage() {
         </div>
       </div>
       <Link href="/" className="mt-8 text-blue-600 hover:underline">← Back to Home</Link>
+      {/* Sign Out button only accessible in Settings */}
+      <div className="mt-8">
+        <form action="/sign-out" method="post">
+          <button
+            type="submit"
+            className="px-5 py-2 font-semibold rounded-lg bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 text-white shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-400"
+          >
+            <span className="inline-flex items-center gap-2">
+              <svg xmlns='http://www.w3.org/2000/svg' className='h-5 w-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'><path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1' /></svg>
+              Sign Out
+            </span>
+          </button>
+        </form>
+      </div>
     </main>
   );
 }

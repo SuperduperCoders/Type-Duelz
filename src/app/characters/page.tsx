@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
-const characters = [
+const baseCharacters = [
 	{
 		id: 'pro',
 		name: 'Good Typer',
@@ -17,47 +17,66 @@ const characters = [
 		name: 'Pro Typer',
 		cost: { duelPoints: 50, skillPoints: 40 },
 		ownedKey: 'char_pro_wihich',
-		ability: `supernova`,
+		ability: `typingboost`,
 		image: '/Pro.png',
-		unlockLevel: 3,
+		unlockLevel: 5,
 	},
 	{
 		id: 'advanced-typer',
 		name: 'Advanced Typer',
 		cost: { duelPoints: 100, skillPoints: 200 },
 		ownedKey: 'char_advanced_typer',
-		ability: `Sabatoge`,
+		ability: `Sabotage`,
 		image: '/Advanced.png',
-		unlockLevel: 5,
+		unlockLevel: 10,
 	},
 	{
 		id: 'master',
 		name: 'Master',
-		cost: { duelPoints: 300, skillPoints: 400 },
+		cost: { duelPoints: 400, skillPoints: 400 },
 		ownedKey: 'char_master',
 		ability: `Murder`,
 		image: '/Master.Png',
-		unlockLevel: 10,
+		unlockLevel: 25,
+	},
+		{
+		id: 'mad-scientist',
+		name: 'Mad Scientist',
+		cost: { duelPoints: 500, skillPoints: 399 },
+		ownedKey: 'char_mad_scientist',
+		ability: `Potion Splatter`,
+		image: 'madscientist.png',
+		unlockLevel: 29,
 	},
 	{
 		id: 'undercover',
 		name: 'Undercover Typer',
-		cost: { duelPoints: 400, skillPoints: 250 },
+		cost: { duelPoints: 700, skillPoints: 250 },
 		ownedKey: 'char_undercover',
 		ability: `Shadow`,
 		image: '/Undercover.png',
-		unlockLevel: 15,
+		unlockLevel: 30,
 	},
 	{
 		id: 'hacker',
 		name: 'Hacker Typer',
-		cost: { duelPoints: 1500, skillPoints: 1230 },
+		cost: { duelPoints: 2500, skillPoints: 1230 },
 		ownedKey: 'char_hacker',
 		ability: `Stealth Mode`,
 		image: '/hacker.png',
-		unlockLevel: 20,
+		unlockLevel: 30,
 	},
 ];
+
+const tonyStark = {
+	id: 'tony-stark-wichich',
+	name: 'Tony Stark (actor)',
+	cost: { duelPoints: 0, skillPoints: 0 },
+	ownedKey: 'char_tony_stark',
+	ability: 'Blue laser beams burn your opponent when you press Enter!',
+	image: '/hacker.png', // Use a suitable image or add one to public/
+	unlockLevel: 0,
+};
 
 
 import { useXP } from '../XPProvider';
@@ -74,6 +93,7 @@ export default function CharactersPage() {
 	const clickAudioRef = useRef<HTMLAudioElement | null>(null);
 	const { level, addXP, setLevel } = useXP();
 	const [cheatCode, setCheatCode] = React.useState("");
+	const [tonyUnlocked, setTonyUnlocked] = useState(false);
 
 	// On mount, initialize all state from localStorage
 	useEffect(() => {
@@ -82,13 +102,20 @@ export default function CharactersPage() {
 			setDuelPoints(parseInt(localStorage.getItem('duelPoints') || '0', 10));
 			setSkill(parseInt(localStorage.getItem('typingSkill') || '0', 10));
 			const newOwned: { [key: string]: boolean } = {};
-			characters.forEach(c => {
+			baseCharacters.forEach(c => {
 				newOwned[c.ownedKey] = !!localStorage.getItem(c.ownedKey);
 			});
+			// Only unlock Tony Stark if cheat code was entered in this session
+			const unlocked = !!localStorage.getItem('tonyStarkUnlocked');
+			if (!unlocked) {
+				localStorage.removeItem(tonyStark.ownedKey);
+			}
+			newOwned[tonyStark.ownedKey] = unlocked;
 			setOwned(newOwned);
 			setEquipped(localStorage.getItem('equippedCharacter'));
 			setSabotageCooldown(parseInt(localStorage.getItem('sabotageCooldown') || '0', 10));
 			setKillCooldown(parseInt(localStorage.getItem('killCooldown') || '0', 10));
+			setTonyUnlocked(unlocked);
 		}
 	}, []);
 
@@ -126,8 +153,7 @@ export default function CharactersPage() {
 		return () => interval && clearInterval(interval!);
 	}, [mounted, equipped, owned['char_master']]);
 
-
-	const handleBuyWithDuel = (char: typeof characters[0]) => {
+	const handleBuyWithDuel = (char: typeof baseCharacters[0]) => {
 		if (owned[char.ownedKey]) return;
 		if (level < char.unlockLevel) {
 			alert(`Reach level ${char.unlockLevel} to unlock this character.`);
@@ -147,7 +173,7 @@ export default function CharactersPage() {
 		}
 	};
 
-	const handleBuyWithSkill = (char: typeof characters[0]) => {
+	const handleBuyWithSkill = (char: typeof baseCharacters[0]) => {
 		if (owned[char.ownedKey]) return;
 		if (level < char.unlockLevel) {
 			alert(`Reach level ${char.unlockLevel} to unlock this character.`);
@@ -167,7 +193,7 @@ export default function CharactersPage() {
 		}
 	};
 
-	const handleEquip = (char: typeof characters[0]) => {
+	const handleEquip = (char: typeof baseCharacters[0]) => {
 		if (!owned[char.ownedKey]) return;
 		localStorage.setItem('equippedCharacter', char.id);
 		setEquipped(char.id);
@@ -200,11 +226,18 @@ export default function CharactersPage() {
 				<button
 					className="ml-2 px-3 py-1 bg-yellow-500 text-white rounded"
 					onClick={() => {
-									if (cheatCode === 'levelup123') {
-										setLevel(10000000000000000);
-										setCheatCode("");
-										alert('Level set to 10000000000000000!');
-									}
+						if (cheatCode === 'levelup123') {
+							setLevel(1000000000000000000000000000000000000);
+							setCheatCode("");
+							alert('Level set to 10000000000000000!');
+						} else if (cheatCode === 'archer2014') {
+							localStorage.setItem('tonyStarkUnlocked', '1');
+							localStorage.setItem(tonyStark.ownedKey, '1');
+							setOwned(prev => ({ ...prev, [tonyStark.ownedKey]: true }));
+							setTonyUnlocked(true);
+							setCheatCode("");
+							alert('Tony Stark unlocked!');
+						}
 					}}
 				>Apply</button>
 			</div>
@@ -219,7 +252,7 @@ export default function CharactersPage() {
 				</div>
 			)}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl">
-								{characters.map(char => (
+				{([...baseCharacters, ...(tonyUnlocked ? [tonyStark] : [])]).map(char => (
 									<div key={char.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center border border-gray-200 dark:border-gray-700">
 										<img src={level < char.unlockLevel ? "/locked.png" : char.image} alt={char.name} className="w-20 h-20 mb-4" />
 										<h2 className="text-xl font-bold mb-2">{char.name}</h2>

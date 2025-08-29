@@ -1,6 +1,8 @@
+"use client";
+// ...existing code...
+// Solo mode page moved to /dashboard
 
 'use client';
-// Solo mode page moved to /dashboard
 
 
 import { useEffect, useState, useRef } from 'react';
@@ -228,6 +230,12 @@ export default function Home() {
 "The puppy barked happily at the passing car",
 
 "We watched the stars from the wooden balcony",
+"we murderd a child infront of their mom",
+        
+
+"they pulled out the kids liver happliy ",
+
+"Bob gadly murderd millions with a tooth",
 
 "The smell of coffee filled the small room",
 
@@ -656,6 +664,12 @@ export default function Home() {
 
       {/* Top navigation buttons - stick to top */}
       <div className={`fixed top-0 left-0 w-full flex flex-row justify-end gap-2 p-4 ${theme === 'rainbow' ? 'bg-white/80 rainbow-theme' : 'bg-white/80 dark:bg-gray-900/80'} z-50 shadow-md`}>
+        <button
+          className="bg-red-500 text-white px-4 py-2 rounded-md font-semibold border border-red-700 hover:bg-red-600 transition"
+          onClick={() => { playClick(); window.location.href = '/duel'; }}
+        >
+          Duel Mode
+        </button>
         <div className="flex flex-col items-end mr-2">
           <span className="bg-blue-200 text-blue-800 px-4 py-1 rounded font-bold text-md mb-1 shadow">Duel Points: {duelPoints}</span>
         </div>

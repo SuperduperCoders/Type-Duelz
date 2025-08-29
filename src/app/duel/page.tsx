@@ -1,5 +1,6 @@
 "use client";
 
+"use client";
 import React, { useEffect, useState, useRef } from "react";
 import { useXP } from "../XPProvider";
 import { useRouter } from "next/navigation";
@@ -14,6 +15,28 @@ const duelSentences = [
 ];
 
 export default function Duel() {
+	// Inject Tony Stark laser keyframes CSS once
+	useEffect(() => {
+		if (typeof window !== 'undefined' && !document.getElementById('tony-laser-keyframes')) {
+			const style = document.createElement('style');
+			style.id = 'tony-laser-keyframes';
+			style.innerHTML = `
+@keyframes laser-move-left {
+  from { width: 0%; }
+  to { width: 100vw; }
+}
+@keyframes laser-move-right {
+  from { width: 0%; }
+  to { width: 100vw; }
+}
+@keyframes tony-particle {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-30px) scale(1.5); }
+}
+			`;
+			document.head.appendChild(style);
+		}
+	}, []);
 	const { addXP } = useXP();
 	const [hackerCooldown, setHackerCooldown] = useState(false);
 	const [showHackedMsg, setShowHackedMsg] = useState(false);
@@ -58,6 +81,19 @@ export default function Duel() {
 
 	// Audio ref for typing sound
 	const typingAudioRef = useRef<HTMLAudioElement | null>(null);
+	const tonyLaserAudioRef = useRef<HTMLAudioElement | null>(null);
+
+	// Tony Stark ability state
+	const [showTonyLaserLeft, setShowTonyLaserLeft] = useState(false);
+	const [showTonyLaserRight, setShowTonyLaserRight] = useState(false);
+	const [showTonyBurnMsg, setShowTonyBurnMsg] = useState(false);
+	const [tonyLaserAnim, setTonyLaserAnim] = useState<'none'|'left'|'right'|'done'>('none');
+
+	// Mad Scientist ability state
+	const [showPotion, setShowPotion] = useState(false);
+	const [showExplosion, setShowExplosion] = useState(false);
+	const [madAvailable, setMadAvailable] = useState(true); // Add this line
+	const [madCooldown, setMadCooldown] = useState(0); // Add this line
 	const hackingAudioRef = useRef<HTMLAudioElement | null>(null);
 	// Use error audio hook
 	const { errorAudioRef, playError } = useErrorAudio();
@@ -393,6 +429,7 @@ export default function Duel() {
 				<audio ref={typingAudioRef} src="/typing.mp3" preload="auto" />
 				<audio ref={hackingAudioRef} src="/Hacking.mp3" preload="auto" />
 				<audio ref={errorAudioRef} src="/error.mp3" preload="auto" />
+				<audio ref={tonyLaserAudioRef} src="/futuristic-beam-81215.mp3" preload="auto" />
 				{/* Kill Button: only for Master in duel mode */}
 				{equippedCharacter === 'master' && (
 					<div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
@@ -418,35 +455,60 @@ export default function Duel() {
 						>
 							Sabotage {sabotageAvailable ? '' : `(Cooldown: ${sabotageCooldown} duels)`}
 						</button>
-						{showSabotageMsg && (
-							<div className="mt-2 text-white bg-black/80 px-3 py-1 rounded">{showSabotageMsg}</div>
+						{showHackedMsg && (
+							<div className="fixed bottom-8 right-8 z-[103]">
+								<div className="font-mono text-green-400 text-xl md:text-2xl bg-black bg-opacity-80 px-6 py-3 rounded-lg shadow-lg animate-fadeIn animate-fadeOut" style={{transition: 'opacity 1s'}}>
+									{'Hacked device +50 points'.slice(0, hackedMsgChars)}
+								</div>
+							</div>
 						)}
 					</div>
 				)}
-				{/* Account Modal */}
-				{showAccountModal && (
-					<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-						<form onSubmit={handleAccountSubmit} className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg flex flex-col gap-4 min-w-[320px]">
-							<h2 className="text-2xl font-bold mb-2 text-center">{localStorage.getItem("playerName") ? "Edit Account" : "Create Account"}</h2>
-							<input
-								type="text"
-								placeholder="Player Name"
-								value={playerName}
-								onChange={e => { setPlayerName(e.target.value); setNameError(''); }}
-								className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
-								required
-							/>
-							<input
-								type="password"
-								placeholder="Password"
-								value={password}
-								onChange={e => setPassword(e.target.value)}
-								className="p-3 border rounded-md text-black dark:text-white dark:bg-gray-700"
-								required
-							/>
-							{nameError && <div className="text-red-600 text-sm font-semibold">{nameError}</div>}
-							<button type="submit" className="bg-blue-500 text-white px-4 py-2 rounded-md font-semibold mt-2 hover:bg-blue-600 transition">Save</button>
-						</form>
+
+				{/* Tony Stark laser beams and burn notification - global overlay */}
+				{(showTonyLaserLeft || showTonyLaserRight || showTonyBurnMsg) && (
+					<>
+						{showTonyLaserLeft && (
+							<div className="fixed left-0 top-1/2 -translate-y-1/2 z-[110] w-1/2 h-16 bg-blue-500 animate-laser" style={{boxShadow: '0 0 40px 20px #3b82f6'}} />
+						)}
+						{showTonyLaserRight && (
+							<div className="fixed right-0 top-1/2 -translate-y-1/2 z-[110] w-1/2 h-16 bg-blue-500 animate-laser" style={{boxShadow: '0 0 40px 20px #3b82f6'}} />
+						)}
+						{showTonyBurnMsg && (
+							<div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[111]">
+								<div className="font-mono text-blue-500 text-xl md:text-2xl bg-black bg-opacity-80 px-6 py-3 rounded-lg shadow-lg animate-fadeIn animate-fadeOut" style={{transition: 'opacity 1s'}}>
+									{`You burn ${opponentName}`}
+								</div>
+							</div>
+						)}
+					</>
+				)}
+				{/* Mad Scientist potion and explosion overlay */}
+				{showPotion && (
+					<div className="fixed inset-0 z-[120] flex items-center justify-center">
+						<img src="/bomb.png" alt="Potion" className="w-32 h-32 animate-bounce" style={{filter: 'drop-shadow(0 0 20px #7f5fff)'}} />
+					</div>
+				)}
+				{showExplosion && (
+					<div className="fixed inset-0 z-[121] flex items-center justify-center">
+						<div className="w-40 h-40 rounded-full bg-yellow-400 animate-pulse" style={{boxShadow: '0 0 80px 40px #ff5f5f'}} />
+						<span className="absolute text-4xl font-bold text-red-700">BOOM!</span>
+					</div>
+				)}
+				{/* Mad Scientist cooldown UI */}
+				{equippedCharacter === 'mad-scientist' && (
+					<div className="fixed left-4 top-2/3 -translate-y-1/2 z-50 flex flex-col items-center">
+						<button
+							className={`px-6 py-3 rounded-xl font-bold text-white text-lg shadow-lg ${madAvailable ? 'bg-purple-600 hover:bg-purple-700' : 'bg-gray-400 cursor-not-allowed'}`}
+							disabled={!madAvailable}
+						>
+							Potion Splatter
+						</button>
+						{!madAvailable && (
+							<div className="mt-2 flex flex-col items-center">
+								<span className="text-lg font-bold text-purple-700 dark:text-purple-300">Available next match</span>
+							</div>
+						)}
 					</div>
 				)}
 				{/* Win/Lose Banner Overlay */}
@@ -495,75 +557,138 @@ export default function Duel() {
 						value={input}
 						onChange={handleInputChange}
 						onKeyDown={e => {
-							// Hacker Typer ability: blackout with matrix effect and instant 10 wins
+							if (
+								equippedCharacter === 'tony-stark-wichich' &&
+								e.key === 'Enter' &&
+								!userFinished &&
+								!aiFinished
+							) {
+								setTonyLaserAnim('left');
+								setShowTonyLaserLeft(true);
+								setTimeout(() => {
+									setShowTonyLaserLeft(false);
+									setTonyLaserAnim('right');
+									setShowTonyLaserRight(true);
+									setTimeout(() => {
+										setShowTonyLaserRight(false);
+										setTonyLaserAnim('done');
+										setShowTonyBurnMsg(true);
+										setUserFinished(true);
+										setAiFinished(true);
+										setResult('🏆 Tony Stark: You win! +100 Duel Points');
+										setDuelPoints((p: number) => p + 100);
+										setTimeout(() => {
+											setShowTonyBurnMsg(false);
+											setTonyLaserAnim('none');
+										}, 2000);
+									}, 900); // right laser duration
+								}, 900); // left laser duration
+								e.preventDefault();
+								return;
+							}
+							// Mad Scientist ability: potion + explosion + restart
+							if (
+								equippedCharacter === 'mad-scientist' &&
+								e.key === 'Enter' &&
+								!userFinished &&
+								!aiFinished &&
+								madAvailable
+							) {
+								setShowPotion(true);
+								setMadAvailable(false);
+								setMadCooldown(30);
+								localStorage.setItem('madCooldown', '30');
+								setTimeout(() => {
+									setShowPotion(false);
+									setShowExplosion(true);
+									setTimeout(() => {
+										setShowExplosion(false);
+										// Restart play: reset input, AI, finished states
+										setInput("");
+										setAiIndex(0);
+										setUserFinished(false);
+										setAiFinished(false);
+										setResult("");
+										// Optionally, pick a new sentence
+										const random = duelSentences[Math.floor(Math.random() * duelSentences.length)];
+										setTarget(random);
+									}, 900); // explosion duration
+								}, 700); // potion duration
+								e.preventDefault();
+								return;
+							}
+// After each match, reset Mad Scientist ability for next match
+useEffect(() => {
+	if ((userFinished || aiFinished) && !madAvailable) {
+		setMadAvailable(true);
+	}
+}, [userFinished, aiFinished]);
+							// Hacker Typer ability: matrix effect and points
 							if (
 								equippedCharacter === 'hacker' &&
 								e.key === 'Enter' &&
 								!userFinished &&
 								!aiFinished &&
-								!hackerCooldown
+								!showHackerEffect
 							) {
-								setHackerCooldown(true);
-								setShowHackerEffect(true);
-								// Play hacking sound effect
+								// Play hacking sound
 								if (hackingAudioRef.current) {
-									hackingAudioRef.current.pause();
 									hackingAudioRef.current.currentTime = 0;
 									hackingAudioRef.current.play().catch(() => {});
 								}
-								// Generate matrix animation data
-								const rows = 20;
-								const cols = 40;
-								hackerColsRef.current = cols;
-								let matrix: string[] = [];
+								// Generate matrix effect
+								const cols = hackerColsRef.current;
+								const rows = 12;
+								const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
+								const matrix: string[] = [];
 								for (let i = 0; i < rows; i++) {
 									let row = '';
 									for (let j = 0; j < cols; j++) {
-										row += Math.random() > 0.5 ? '1' : '0';
+										row += chars[Math.floor(Math.random() * chars.length)];
 									}
 									matrix.push(row);
 								}
 								setHackerMatrix(matrix);
 								setHackerCharsShown(0);
-								// Animate one character at a time over 5 seconds
-								const totalChars = rows * cols;
+								setShowHackerEffect(true);
+								// Animate matrix reveal
+								let totalChars = cols * rows;
 								let shown = 0;
-								const interval = setInterval(() => {
-									shown++;
+								const reveal = () => {
+									shown += Math.floor(cols / 2);
+									if (shown > totalChars) shown = totalChars;
 									setHackerCharsShown(shown);
-									if (shown >= totalChars) {
-										clearInterval(interval);
+									if (shown < totalChars) {
+										setTimeout(reveal, 40);
+									} else {
+										setTimeout(() => {
+											setShowHackerEffect(false);
+											setShowHackedMsg(true);
+											setHackedMsgChars(0);
+											// Animate hacked message
+											let msgLen = 'Hacked device +50 points'.length;
+											let msgShown = 0;
+											const msgReveal = () => {
+												msgShown++;
+												setHackedMsgChars(msgShown);
+												if (msgShown < msgLen) {
+													setTimeout(msgReveal, 40);
+												} else {
+													setTimeout(() => {
+														setShowHackedMsg(false);
+														setUserFinished(true);
+														setAiFinished(true);
+														setResult('🏆 Hacker Typer: You win! +50 Duel Points');
+														setDuelPoints((p: number) => p + 50);
+														addXP(40);
+													}, 1200);
+												}
+											};
+											msgReveal();
+										}, 600);
 									}
-								}, 5000 / totalChars);
-								setTimeout(() => {
-									// Stop hacking sound effect
-									if (hackingAudioRef.current) {
-										hackingAudioRef.current.pause();
-										hackingAudioRef.current.currentTime = 0;
-									}
-									setShowHackerEffect(false);
-									setUserFinished(true);
-									setAiFinished(true);
-									setResult('🏆 Hacker Typer: You win! +50 Duel Points');
-									setDuelPoints((p: number) => p + 50);
-									// Show hacked message with typing animation
-									setShowHackedMsg(true);
-									setHackedMsgChars(0);
-									let msg = 'Hacked device +50 points';
-									let msgIdx = 0;
-									const msgInterval = setInterval(() => {
-										msgIdx++;
-										setHackedMsgChars(msgIdx);
-										if (msgIdx >= msg.length) {
-											clearInterval(msgInterval);
-											// Fade out after 2s
-											setTimeout(() => {
-												setShowHackedMsg(false);
-												setHackerCooldown(false);
-											}, 2000);
-										}
-									}, 60);
-								}, 5000);
+								};
+								reveal();
 								e.preventDefault();
 								return;
 							}
@@ -633,13 +758,178 @@ export default function Duel() {
 							</div>
 						</div>
 					)}
-	{showHackedMsg && (
-		<div className="fixed bottom-8 right-8 z-[103]">
-			<div className="font-mono text-green-400 text-xl md:text-2xl bg-black bg-opacity-80 px-6 py-3 rounded-lg shadow-lg animate-fadeIn animate-fadeOut" style={{transition: 'opacity 1s'}}>
-				{'Hacked device +50 points'.slice(0, hackedMsgChars)}
-			</div>
-		</div>
-	)}
+					{showHackedMsg && (
+						<div className="fixed bottom-8 right-8 z-[103]">
+							<div className="font-mono text-green-400 text-xl md:text-2xl bg-black bg-opacity-80 px-6 py-3 rounded-lg shadow-lg animate-fadeIn animate-fadeOut" style={{transition: 'opacity 1s'}}>
+								{'Hacked device +50 points'.slice(0, hackedMsgChars)}
+							</div>
+						</div>
+					)}
+					{/* Tony Stark animated lasers and burn notification */}
+					{tonyLaserAnim === 'left' && (
+						(() => {
+							if (tonyLaserAudioRef.current) {
+								tonyLaserAudioRef.current.currentTime = 0;
+								tonyLaserAudioRef.current.play().catch(() => {});
+							}
+							return null;
+						})()
+					)}
+					{tonyLaserAnim === 'left' && (
+						<>
+							{/* Top laser */}
+							<div className="fixed left-0 top-[30%] z-[110] h-16 flex items-center" style={{width: '100vw', pointerEvents: 'none'}}>
+								<div style={{
+									position: 'absolute',
+									left: 0,
+									top: 0,
+									height: '100%',
+									width: '0%',
+									borderRadius: '100px',
+									background: 'radial-gradient(circle at 10% 50%, #e0f2fe 40%, #93c5fd 80%, transparent 100%)',
+									boxShadow: '0 0 80px 40px #93c5fd',
+									animation: 'laser-move-left 5s linear forwards',
+								}} />
+								{/* Blue fire particles */}
+								{[...Array(18)].map((_, i) => {
+									const left = `${(i * 5 + Math.random() * 3)}vw`;
+									const top = `${45 + Math.random() * 10}%`;
+									const size = `${8 + Math.random() * 8}px`;
+									const delay = `${Math.random() * 2.5}s`;
+									return (
+										<div key={i} style={{
+											position: 'absolute',
+											left,
+											top: '40%',
+											width: size,
+											height: size,
+											borderRadius: '50%',
+											background: 'radial-gradient(circle, #93c5fd 70%, #60a5fa 100%)',
+											opacity: 0.7,
+											filter: 'blur(1px)',
+											animation: `tony-particle 2.5s ${delay} linear forwards`,
+										}} />
+									);
+								})}
+							</div>
+							{/* Bottom laser */}
+							<div className="fixed left-0 bottom-[30%] z-[110] h-16 flex items-center" style={{width: '100vw', pointerEvents: 'none'}}>
+								<div style={{
+									position: 'absolute',
+									left: 0,
+									top: 0,
+									height: '100%',
+									width: '0%',
+									borderRadius: '100px',
+									background: 'radial-gradient(circle at 10% 50%, #e0f2fe 40%, #93c5fd 80%, transparent 100%)',
+									boxShadow: '0 0 80px 40px #93c5fd',
+									animation: 'laser-move-left 5s linear forwards',
+								}} />
+								{/* Blue fire particles */}
+								{[...Array(18)].map((_, i) => {
+									const left = `${(i * 5 + Math.random() * 3)}vw`;
+									const top = `${45 + Math.random() * 10}%`;
+									const size = `${8 + Math.random() * 8}px`;
+									const delay = `${Math.random() * 2.5}s`;
+									return (
+										<div key={i} style={{
+											position: 'absolute',
+											left,
+											top: '60%',
+											width: size,
+											height: size,
+											borderRadius: '50%',
+											background: 'radial-gradient(circle, #93c5fd 70%, #60a5fa 100%)',
+											opacity: 0.7,
+											filter: 'blur(1px)',
+											animation: `tony-particle 2.5s ${delay} linear forwards`,
+										}} />
+									);
+								})}
+							</div>
+						</>
+					)}
+					{tonyLaserAnim === 'right' && (
+						<>
+							{/* Top laser */}
+							<div className="fixed right-0 top-[30%] z-[110] h-16 flex items-center" style={{width: '100vw', pointerEvents: 'none'}}>
+								<div style={{
+									position: 'absolute',
+									right: 0,
+									top: 0,
+									height: '100%',
+									width: '0%',
+									borderRadius: '100px',
+									background: 'radial-gradient(circle at 90% 50%, #e0f2fe 40%, #93c5fd 80%, transparent 100%)',
+									boxShadow: '0 0 80px 40px #93c5fd',
+									animation: 'laser-move-right 5s linear forwards',
+								}} />
+								{/* Blue fire particles */}
+								{[...Array(18)].map((_, i) => {
+									const right = `${(i * 5 + Math.random() * 3)}vw`;
+									const top = `${45 + Math.random() * 10}%`;
+									const size = `${8 + Math.random() * 8}px`;
+									const delay = `${Math.random() * 2.5}s`;
+									return (
+										<div key={i} style={{
+											position: 'absolute',
+											right,
+											top: '40%',
+											width: size,
+											height: size,
+											borderRadius: '50%',
+											background: 'radial-gradient(circle, #93c5fd 70%, #60a5fa 100%)',
+											opacity: 0.7,
+											filter: 'blur(1px)',
+											animation: `tony-particle 2.5s ${delay} linear forwards`,
+										}} />
+									);
+								})}
+							</div>
+							{/* Bottom laser */}
+							<div className="fixed right-0 bottom-[30%] z-[110] h-16 flex items-center" style={{width: '100vw', pointerEvents: 'none'}}>
+								<div style={{
+									position: 'absolute',
+									right: 0,
+									top: 0,
+									height: '100%',
+									width: '0%',
+									borderRadius: '100px',
+									background: 'radial-gradient(circle at 90% 50%, #e0f2fe 40%, #93c5fd 80%, transparent 100%)',
+									boxShadow: '0 0 80px 40px #93c5fd',
+									animation: 'laser-move-right 5s linear forwards',
+								}} />
+								{/* Blue fire particles */}
+								{[...Array(18)].map((_, i) => {
+									const right = `${(i * 5 + Math.random() * 3)}vw`;
+									const top = `${45 + Math.random() * 10}%`;
+									const size = `${8 + Math.random() * 8}px`;
+									const delay = `${Math.random() * 2.5}s`;
+									return (
+										<div key={i} style={{
+											position: 'absolute',
+											right,
+											top: '60%',
+											width: size,
+											height: size,
+											borderRadius: '50%',
+											background: 'radial-gradient(circle, #93c5fd 70%, #60a5fa 100%)',
+											opacity: 0.7,
+											filter: 'blur(1px)',
+											animation: `tony-particle 2.5s ${delay} linear forwards`,
+										}} />
+									);
+								})}
+							</div>
+						</>
+					)}
+					{tonyLaserAnim === 'done' && showTonyBurnMsg && (
+						<div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[111]">
+							<div className="font-mono text-blue-500 text-xl md:text-2xl bg-black bg-opacity-80 px-6 py-3 rounded-lg shadow-lg animate-fadeIn animate-fadeOut" style={{transition: 'opacity 1s'}}>
+								{`You burn ${opponentName}`}
+							</div>
+						</div>
+					)}
 				</div>
 			</main>
 		)
