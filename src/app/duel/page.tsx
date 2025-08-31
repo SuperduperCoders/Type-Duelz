@@ -306,20 +306,20 @@ export default function Duel() {
 			if (newVal.length === target.length) {
 				setUserFinished(true);
 				const endTime = Date.now();
-				const durationInMinutes = (endTime - (startTime ?? endTime)) / 60000;
+				const durationInSeconds = Math.round((endTime - (startTime ?? endTime)) / 1000);
 				const wordCount = target.trim().split(/\s+/).length;
-				const calculatedWpm = Math.round(wordCount / durationInMinutes);
+				const calculatedWpm = Math.round(wordCount / ((endTime - (startTime ?? endTime)) / 60000));
 				setWpmHistory((prev: number[]) => [...prev, calculatedWpm]);
-				// XP gain for typing a sentence
-				addXP(20); // 20 XP per sentence
+				let earnedXP = 20;
 				if (!aiFinished) {
 					setDuelPoints((p: number) => p + 5);
 					setResult("\ud83c\udfc6 You win! +5 Duel Points");
-					// XP gain for winning a duel
-					addXP(40); // 40 XP for win
+					earnedXP += 40;
 				} else {
 					setResult(`\u274c ${opponentName} wins! Try again.`);
 				}
+				addXP(earnedXP);
+				router.push(`/duelend?time=${durationInSeconds}&xp=${earnedXP}`);
 			}
 	};
 
@@ -462,6 +462,77 @@ export default function Duel() {
 								</div>
 							</div>
 						)}
+					</div>
+				)}
+				{/* Hacker Typer Button: only for Hacker Typer in duel mode */}
+				{equippedCharacter === 'hacker' && !userFinished && !aiFinished && (
+					<div className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
+						<button
+							className={`px-6 py-3 rounded-xl font-bold text-white text-lg shadow-lg bg-green-700 hover:bg-green-800`}
+							onClick={e => {
+								// Play hacking sound
+								if (hackingAudioRef.current) {
+									hackingAudioRef.current.currentTime = 0;
+									hackingAudioRef.current.play().catch(() => {});
+								}
+								// Guarantee win and points immediately
+								setUserFinished(true);
+								setAiFinished(true);
+								setResult('🏆 Hacker Typer: You win! +50 Duel Points');
+								setDuelPoints((p: number) => p + 50);
+								addXP(40);
+								// Generate matrix effect
+								const cols = hackerColsRef.current;
+								const rows = 12;
+								const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&';
+								const matrix: string[] = [];
+								for (let i = 0; i < rows; i++) {
+									let row = '';
+									for (let j = 0; j < cols; j++) {
+										row += chars[Math.floor(Math.random() * chars.length)];
+									}
+									matrix.push(row);
+								}
+								setHackerMatrix(matrix);
+								setHackerCharsShown(0);
+								setShowHackerEffect(true);
+								// Animate matrix reveal
+								let totalChars = cols * rows;
+								let shown = 0;
+								const reveal = () => {
+									shown += Math.floor(cols / 2);
+									if (shown > totalChars) shown = totalChars;
+									setHackerCharsShown(shown);
+									if (shown < totalChars) {
+										setTimeout(reveal, 40);
+									} else {
+										setTimeout(() => {
+											setShowHackerEffect(false);
+											setShowHackedMsg(true);
+											setHackedMsgChars(0);
+											// Animate hacked message
+											let msgLen = 'Hacked device +50 points'.length;
+											let msgShown = 0;
+											const msgReveal = () => {
+												msgShown++;
+												setHackedMsgChars(msgShown);
+												if (msgShown < msgLen) {
+													setTimeout(msgReveal, 40);
+												} else {
+													setTimeout(() => {
+														setShowHackedMsg(false);
+													}, 1200);
+												}
+											};
+											msgReveal();
+										}, 600);
+									}
+								};
+								reveal();
+							}}
+						>
+							Hack Device (Win Instantly)
+						</button>
 					</div>
 				)}
 
@@ -628,14 +699,19 @@ useEffect(() => {
 								equippedCharacter === 'hacker' &&
 								e.key === 'Enter' &&
 								!userFinished &&
-								!aiFinished &&
-								!showHackerEffect
+								!aiFinished
 							) {
 								// Play hacking sound
 								if (hackingAudioRef.current) {
 									hackingAudioRef.current.currentTime = 0;
 									hackingAudioRef.current.play().catch(() => {});
 								}
+								// Guarantee win and points immediately
+								setUserFinished(true);
+								setAiFinished(true);
+								setResult('🏆 Hacker Typer: You win! +50 Duel Points');
+								setDuelPoints((p: number) => p + 50);
+								addXP(40);
 								// Generate matrix effect
 								const cols = hackerColsRef.current;
 								const rows = 12;
@@ -676,11 +752,6 @@ useEffect(() => {
 												} else {
 													setTimeout(() => {
 														setShowHackedMsg(false);
-														setUserFinished(true);
-														setAiFinished(true);
-														setResult('🏆 Hacker Typer: You win! +50 Duel Points');
-														setDuelPoints((p: number) => p + 50);
-														addXP(40);
 													}, 1200);
 												}
 											};

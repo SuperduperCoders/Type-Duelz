@@ -44,7 +44,7 @@ const baseCharacters = [
 		name: 'Mad Scientist',
 		cost: { duelPoints: 500, skillPoints: 399 },
 		ownedKey: 'char_mad_scientist',
-		ability: `Potion Splatter`,
+		ability: `Uncontrollable Explosion`,
 		image: 'madscientist.png',
 		unlockLevel: 29,
 	},

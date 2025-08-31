@@ -15,6 +15,8 @@ import { UserButton, SignedIn, SignOutButton } from '@clerk/nextjs';
 
 
 export default function Home() {
+  // Track incorrect letter indices
+  const [incorrectIndices, setIncorrectIndices] = useState<number[]>([]);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const [target, setTarget] = useState('');
   const [input, setInput] = useState('');
@@ -436,28 +438,42 @@ export default function Home() {
     const newVal = e.target.value;
 
     // Prevent going backwards
-    if (newVal.length < input.length) return;
+    if (newVal.length < input.length) {
+      setInput(newVal);
+      // Recalculate incorrect indices
+      let newIncorrectIndices = [];
+      for (let i = 0; i < newVal.length; i++) {
+        if (newVal[i] !== target[i]) {
+          newIncorrectIndices.push(i);
+        }
+      }
+      setIncorrectIndices(newIncorrectIndices);
+      setAccuracy(calculateAccuracy(newVal));
+      return;
+    }
     // Prevent skipping chars
     if (newVal.length > input.length + 1) return;
 
-    // SOLO MODE: Only allow typing the next character if it matches the target
-    if (!isDuelMode && newVal.length > 0) {
-      // Check all previous letters
-      for (let i = 0; i < newVal.length - 1; i++) {
-        if (newVal[i] !== target[i]) {
-          playError();
-          setMistakeCount(prev => prev + 1);
-          setAccuracy(calculateAccuracy(newVal));
-          return;
+    // Update incorrect indices
+    let newIncorrectIndices = [...incorrectIndices];
+    for (let i = 0; i < newVal.length; i++) {
+      if (newVal[i] !== target[i]) {
+        if (!newIncorrectIndices.includes(i)) {
+          newIncorrectIndices.push(i);
         }
+      } else {
+        // Remove index if corrected
+        newIncorrectIndices = newIncorrectIndices.filter(idx => idx !== i);
       }
-      // Block if the new letter is not correct
-      if (newVal[newVal.length - 1] !== target[newVal.length - 1]) {
-        playError();
-        setMistakeCount(prev => prev + 1);
-        setAccuracy(calculateAccuracy(newVal));
-        return;
-      }
+    }
+    setIncorrectIndices(newIncorrectIndices);
+
+    // Block further typing if the last character is incorrect
+    if (newVal.length > 0 && newVal[newVal.length - 1] !== target[newVal.length - 1]) {
+      playError();
+      setMistakeCount(prev => prev + 1);
+      setAccuracy(calculateAccuracy(newVal));
+      return;
     }
 
     setInput(newVal);
@@ -574,10 +590,11 @@ export default function Home() {
               className += ' bg-gray-300 rounded';
             }
             if (idx < input.length) {
-              className +=
-                currentChar === target[idx]
-                  ? ' text-green-600'
-                  : ' text-red-600 bg-red-100';
+              if (incorrectIndices.includes(idx)) {
+                className += ' text-red-600 bg-red-100'; // highlight incorrect until fixed
+              } else {
+                className += ' text-green-600';
+              }
             } else if (idx === input.length) {
               className += ' bg-yellow-200 text-black rounded';
             } else {
@@ -666,7 +683,7 @@ export default function Home() {
       <div className={`fixed top-0 left-0 w-full flex flex-row justify-end gap-2 p-4 ${theme === 'rainbow' ? 'bg-white/80 rainbow-theme' : 'bg-white/80 dark:bg-gray-900/80'} z-50 shadow-md`}>
         <button
           className="bg-red-500 text-white px-4 py-2 rounded-md font-semibold border border-red-700 hover:bg-red-600 transition"
-          onClick={() => { playClick(); window.location.href = '/duel'; }}
+          onClick={() => { playClick(); window.location.href = '/duelstart'; }}
         >
           Duel Mode
         </button>

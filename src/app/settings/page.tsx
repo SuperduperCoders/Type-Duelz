@@ -3,8 +3,16 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 
 export default function SettingsPage() {
+  // Reset level handler
+  const handleResetLevel = () => {
+    localStorage.setItem('level', '1');
+    localStorage.setItem('xp', '0');
+    alert('Level and XP have been reset to 1 and 0.');
+    window.location.reload();
+  };
   const [playerName, setPlayerName] = useState("");
   const [theme, setTheme] = useState("light");
+  const [rainbowUnlocked, setRainbowUnlocked] = useState(false);
   const [averageAccuracy, setAverageAccuracy] = useState<number | null>(null);
   const [codeInput, setCodeInput] = useState("");
   const [codeMessage, setCodeMessage] = useState("");
@@ -12,7 +20,9 @@ export default function SettingsPage() {
   useEffect(() => {
     if (typeof window !== "undefined") {
       setPlayerName(localStorage.getItem("playerName") || "");
-      setTheme(localStorage.getItem("theme") || "light");
+  const storedTheme = localStorage.getItem("theme") || "light";
+  setTheme(storedTheme);
+  setRainbowUnlocked(localStorage.getItem("rainbowUnlocked") === "true" || storedTheme === "rainbow");
       // Calculate average accuracy from solo and duel
       const soloAcc = localStorage.getItem("soloAccuracyHistory");
       const duelAcc = localStorage.getItem("duelAccuracyHistory");
@@ -30,6 +40,11 @@ export default function SettingsPage() {
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem("playerName", playerName);
+    // Only allow saving rainbow theme if unlocked
+    if (theme === "rainbow" && !rainbowUnlocked) {
+      alert("Rainbow theme is locked. Enter the code in settings to unlock.");
+      return;
+    }
     localStorage.setItem("theme", theme);
     // Apply theme immediately
     if (typeof document !== "undefined") {
@@ -39,12 +54,18 @@ export default function SettingsPage() {
   };
 
   const handleRedeem = () => {
-    if (codeInput === "Daniel2013") {
+    if (codeInput === "rainbow123") {
+      localStorage.setItem("rainbowUnlocked", "true");
+      localStorage.setItem("theme", "rainbow");
+      setTheme("rainbow");
+      setRainbowUnlocked(true);
+      setCodeMessage("🌈 Rainbow Theme Unlocked! You can now select it in the theme dropdown.");
+    }
+    else if (codeInput === "Daniel2013") {
       localStorage.setItem("duelPoints", (10000000000000).toString());
       localStorage.setItem("typingSkill", (1000000000000).toString());
       setCodeMessage("Success! 10,000,000,000 Duel Points and Skill Points added.");
-    } 
-    
+    }
     else if (codeInput === "randomevent123") {
       const events = [
         () => {
@@ -56,10 +77,6 @@ export default function SettingsPage() {
           return "🔥 You gained +1,000 Typing Skill Points!";
         },
         () => {
-          localStorage.setItem("theme", "rainbow");
-          return "🌈 Secret Rainbow Theme Unlocked!";
-        },
-        () => {
           return "😂 Surprise! Nothing happened... or did it?";
         },
         () => {
@@ -69,11 +86,10 @@ export default function SettingsPage() {
       ];
       const randomEvent = events[Math.floor(Math.random() * events.length)];
       setCodeMessage(randomEvent());
-    } 
-    
+    }
     else {
-      setCodeMessage("Invalid code.");
-      setTimeout(() => setCodeMessage(""), 3000); // Clear message after 3 sec
+  setCodeMessage("Invalid code.");
+  setTimeout(() => setCodeMessage("") , 3000); // Clear message after 3 sec
     }
   };
 
@@ -98,7 +114,7 @@ export default function SettingsPage() {
           >
             <option value="light">Light</option>
             <option value="dark">Dark</option>
-            <option value="rainbow">Rainbow 🌈</option>
+            {rainbowUnlocked && <option value="rainbow">Rainbow 🌈</option>}
           </select>
         </label>
         {/* Code Redemption Bar */}
@@ -128,6 +144,15 @@ export default function SettingsPage() {
         <div className={`text-2xl font-bold ${theme === 'rainbow' ? 'rainbow-text' : ''}` }>
           {averageAccuracy !== null ? `${averageAccuracy}%` : "No data yet"}
         </div>
+      </div>
+      {/* Reset Level Button */}
+      <div className="mt-8">
+        <button
+          className="px-5 py-2 font-semibold rounded-lg bg-gradient-to-r from-yellow-400 via-red-400 to-pink-500 text-white shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+          onClick={handleResetLevel}
+        >
+          Reset Level
+        </button>
       </div>
       <Link href="/" className="mt-8 text-blue-600 hover:underline">← Back to Home</Link>
       {/* Sign Out button only accessible in Settings */}

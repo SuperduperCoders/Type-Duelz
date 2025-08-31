@@ -1,17 +1,16 @@
 // ...existing code...
 import XPBar from './components/XPBar';
 import { type Metadata } from 'next';
-// ...existing code...
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import BackgroundMusic from './BackgroundMusic';
 import { MusicProvider } from './MusicProvider';
 import { Analytics } from "@vercel/analytics/next"
-// ...removed ClerkProvider import...
+
 import { XPProvider } from './XPProvider';
 import{ClerkProvider, SignedIn, SignedOut, SignIn, SignInButton, SignOutButton, UserButton} from '@clerk/nextjs'; 
 
-// Load Google Fonts
+
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -49,7 +48,7 @@ export default function RootLayout({
           {/* MusicProvider wraps the app for global mute state */}
           <MusicProvider>
             <header className="flex items-center gap-4 p-4" style={{background: 'rgb(0,0,0)', color: '#fff'}}>
-              <h1 className="text-4xl font-bold mb-8 text-purple-700 dark:text-purple-300 drop-shadow-lg">TypeDuels</h1>
+              <h1 className="text-4xl font-bold mb-8 text-blue-500 dark:text-purple-300 drop-shadow-lg">TypeDuels</h1>
               {/* Sign Out button removed from global header. Now only accessible in Settings. */}
             </header>
             <BackgroundMusic />

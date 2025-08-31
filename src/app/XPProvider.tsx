@@ -46,7 +46,13 @@ export const XPProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  const resetXP = () => setXP(0);
+  const resetXP = () => {
+    setXP(0);
+    setLevel(lvl => lvl + 1);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('level', (level + 1).toString());
+    }
+  };
 
   const setLevelDirect = (lvl: number) => {
     setLevel(lvl);

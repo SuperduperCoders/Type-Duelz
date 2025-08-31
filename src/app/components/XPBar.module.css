@@ -1,3 +1,53 @@
+/* Coin animation styles */
+.coinAnimContainer {
+  position: fixed;
+  left: 32px;
+  top: 60%;
+  width: 220px;
+  height: 160px;
+  pointer-events: none;
+  z-index: 1100;
+}
+
+.coin {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  animation: fly-to-bar 0.7s cubic-bezier(.7,1.5,.5,1) forwards;
+  box-shadow: 0 0 16px 4px #FFD700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.coinParticle {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 40px;
+  height: 8px;
+  background: linear-gradient(90deg, #FFD700, #FF69B4, #00e0ff);
+  filter: blur(2px);
+  opacity: 0.7;
+  transform: translate(-50%, -50%) rotate(-20deg);
+}
+
+@keyframes fly-to-bar {
+  0% {
+    transform: scale(0.7) translateY(0) rotate(-10deg);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(1.1) translateY(-60px) translateX(120px) rotate(10deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.8) translateY(-90px) translateX(160px) rotate(0deg);
+    opacity: 0.1;
+  }
+}
 .xpBarContainer {
   position: fixed;
   left: 32px;
